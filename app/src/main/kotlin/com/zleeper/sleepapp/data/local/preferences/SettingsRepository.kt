@@ -30,6 +30,7 @@ data class AppSettings(
     val leftHandedControls: Boolean = false,
     val largeControls: Boolean = false,
     val controlOpacity: Float = 0.90f,
+    val lastRevealedExpeditionId: String? = null,
 )
 
 @Singleton
@@ -50,6 +51,7 @@ class SettingsRepository @Inject constructor(private val store: DataStore<Prefer
             leftHandedControls = values[Keys.LEFT_HANDED] ?: false,
             largeControls = values[Keys.LARGE_CONTROLS] ?: false,
             controlOpacity = (values[Keys.CONTROL_OPACITY] ?: 0.90f).coerceIn(0.45f, 1f),
+            lastRevealedExpeditionId = values[Keys.LAST_REVEALED_EXPEDITION],
         )
     }
 
@@ -68,6 +70,7 @@ class SettingsRepository @Inject constructor(private val store: DataStore<Prefer
     suspend fun setLeftHandedControls(value: Boolean) = update(Keys.LEFT_HANDED, value)
     suspend fun setLargeControls(value: Boolean) = update(Keys.LARGE_CONTROLS, value)
     suspend fun setControlOpacity(value: Float) = update(Keys.CONTROL_OPACITY, value.coerceIn(0.45f, 1f))
+    suspend fun markExpeditionRevealed(expeditionId: String) = update(Keys.LAST_REVEALED_EXPEDITION, expeditionId)
     suspend fun reset() { store.edit { it.clear() } }
 
     private suspend fun <T> update(key: Preferences.Key<T>, value: T) { store.edit { it[key] = value } }
@@ -87,5 +90,6 @@ class SettingsRepository @Inject constructor(private val store: DataStore<Prefer
         val LEFT_HANDED = booleanPreferencesKey("left_handed_controls")
         val LARGE_CONTROLS = booleanPreferencesKey("large_controls")
         val CONTROL_OPACITY = floatPreferencesKey("control_opacity")
+        val LAST_REVEALED_EXPEDITION = stringPreferencesKey("last_revealed_expedition_id")
     }
 }

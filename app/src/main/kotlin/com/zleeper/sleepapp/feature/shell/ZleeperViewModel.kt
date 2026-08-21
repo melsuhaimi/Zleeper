@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zleeper.sleepapp.data.content.GameContentRepository
 import com.zleeper.sleepapp.data.local.database.EquipmentSlotEntity
+import com.zleeper.sleepapp.data.local.database.ExpeditionDao
+import com.zleeper.sleepapp.data.local.database.ExpeditionEntity
 import com.zleeper.sleepapp.data.local.database.PetDao
 import com.zleeper.sleepapp.data.local.database.PetEntity
 import com.zleeper.sleepapp.data.local.database.QuestDao
@@ -18,6 +20,8 @@ import com.zleeper.sleepapp.data.local.database.InventoryStackEntity
 import com.zleeper.sleepapp.data.local.database.InventoryTransactionEntity
 import com.zleeper.sleepapp.data.local.database.InventoryInstanceEntity
 import com.zleeper.sleepapp.data.local.database.CollectionEntryEntity
+import com.zleeper.sleepapp.data.local.database.MorningDao
+import com.zleeper.sleepapp.data.local.database.MorningNoteEntity
 import com.zleeper.sleepapp.data.local.database.WorldDiscoveryEntity
 import com.zleeper.sleepapp.data.local.preferences.AppSettings
 import com.zleeper.sleepapp.data.local.preferences.SettingsRepository
@@ -26,6 +30,7 @@ import com.zleeper.sleepapp.data.local.preferences.MotionPreference
 import com.zleeper.sleepapp.data.repository.MorningResult
 import com.zleeper.sleepapp.data.repository.NightResolutionService
 import com.zleeper.sleepapp.domain.sleep.SleepSessionRepository
+import com.zleeper.sleepapp.domain.sleep.SleepReviewCorrection
 import com.zleeper.sleepapp.platform.sleep.SleepSignalSource
 import com.zleeper.sleepapp.platform.data.DataControlRepository
 import com.zleeper.sleepapp.platform.alarm.WakeAlarmScheduler
@@ -44,9 +49,31 @@ import kotlinx.coroutines.launch
 enum class WorldInteractionKind { DIALOGUE, COLLECTION }
 data class WorldInteraction(val title: String, val body: String, val kind: WorldInteractionKind)
 
-data class ZleeperUiState(val settings: AppSettings = AppSettings(), val pet: PetEntity? = null, val sessions: List<SleepSessionEntity> = emptyList(), val regions: List<com.zleeper.sleepapp.data.content.RegionDefinition> = emptyList(), val scenes: List<com.zleeper.sleepapp.data.content.SceneDefinition> = emptyList(), val items: List<com.zleeper.sleepapp.data.content.ItemDefinition> = emptyList(), val quests: List<com.zleeper.sleepapp.data.content.QuestDefinition> = emptyList(), val dialogue: Map<String, List<com.zleeper.sleepapp.data.content.DialogueLineDefinition>> = emptyMap(), val inventoryStacks: List<InventoryStackEntity> = emptyList(), val inventoryInstances: List<InventoryInstanceEntity> = emptyList(), val equipmentSlots: List<EquipmentSlotEntity> = emptyList(), val collectionEntries: List<CollectionEntryEntity> = emptyList(), val questProgress: List<QuestProgressEntity> = emptyList(), val contentErrors: List<String> = emptyList(), val operationError: String? = null, val morningResult: MorningResult? = null, val worldInteraction: WorldInteraction? = null) {
+data class ZleeperUiState(
+    val settings: AppSettings = AppSettings(),
+    val pet: PetEntity? = null,
+    val sessions: List<SleepSessionEntity> = emptyList(),
+    val expeditions: List<ExpeditionEntity> = emptyList(),
+    val regions: List<com.zleeper.sleepapp.data.content.RegionDefinition> = emptyList(),
+    val scenes: List<com.zleeper.sleepapp.data.content.SceneDefinition> = emptyList(),
+    val items: List<com.zleeper.sleepapp.data.content.ItemDefinition> = emptyList(),
+    val quests: List<com.zleeper.sleepapp.data.content.QuestDefinition> = emptyList(),
+    val dialogue: Map<String, List<com.zleeper.sleepapp.data.content.DialogueLineDefinition>> = emptyMap(),
+    val inventoryStacks: List<InventoryStackEntity> = emptyList(),
+    val inventoryInstances: List<InventoryInstanceEntity> = emptyList(),
+    val equipmentSlots: List<EquipmentSlotEntity> = emptyList(),
+    val collectionEntries: List<CollectionEntryEntity> = emptyList(),
+    val questProgress: List<QuestProgressEntity> = emptyList(),
+    val morningNotes: List<MorningNoteEntity> = emptyList(),
+    val contentErrors: List<String> = emptyList(),
+    val operationError: String? = null,
+    val morningResult: MorningResult? = null,
+    val worldInteraction: WorldInteraction? = null,
+) {
     val activeSession get() = sessions.firstOrNull { it.state !in setOf("FINALIZED", "EXPEDITION_RESOLVED", "ABORTED") }
     val pendingReview get() = sessions.firstOrNull { it.state == "REVIEW_PENDING" }
+    val pendingResolution get() = sessions.firstOrNull { it.state == "FINALIZED" }
+    val pendingReveal get() = expeditions.firstOrNull { it.status == "RESOLVED" }?.takeIf { it.id != settings.lastRevealedExpeditionId }
 }
 
 @HiltViewModel
@@ -56,6 +83,8 @@ class ZleeperViewModel @Inject constructor(
     private val sleepDao: SleepDao,
     private val petDao: PetDao,
     private val questDao: QuestDao,
+    private val expeditionDao: ExpeditionDao,
+    private val morningDao: MorningDao,
     private val inventoryDao: InventoryDao,
     private val worldDao: WorldDao,
     private val content: GameContentRepository,
@@ -69,8 +98,9 @@ class ZleeperViewModel @Inject constructor(
     private val operationError = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     private val morningResult = kotlinx.coroutines.flow.MutableStateFlow<MorningResult?>(null)
     private val worldInteraction = kotlinx.coroutines.flow.MutableStateFlow<WorldInteraction?>(null)
+    private val dialogueCursors = mutableMapOf<String, Int>()
     val state: StateFlow<ZleeperUiState> = combine(settingsRepository.settings, petDao.observePet(), sleepDao.sessions(), operationError, morningResult) { settings, pet, sessions, error, result ->
-        ZleeperUiState(settings, pet, sessions, content.regions, content.scenes, content.items, content.quests, content.dialogue, contentErrors = content.validate(), operationError = error, morningResult = result)
+        ZleeperUiState(settings = settings, pet = pet, sessions = sessions, regions = content.regions, scenes = content.scenes, items = content.items, quests = content.quests, dialogue = content.dialogue, contentErrors = content.validate(), operationError = error, morningResult = result)
     }.combine(inventoryDao.stacks()) { base, stacks -> base.copy(inventoryStacks = stacks) }
         .combine(combine(inventoryDao.instances(), inventoryDao.equipment()) { instances, equipment -> instances to equipment }) { base, inventory ->
             base.copy(inventoryInstances = inventory.first, equipmentSlots = inventory.second)
@@ -78,6 +108,8 @@ class ZleeperViewModel @Inject constructor(
         .combine(combine(worldDao.collection(), questDao.quests()) { collection, quests -> collection to quests }) { base, progress ->
             base.copy(collectionEntries = progress.first, questProgress = progress.second)
         }
+        .combine(morningDao.notes()) { base, notes -> base.copy(morningNotes = notes) }
+        .combine(expeditionDao.expeditions()) { base, expeditions -> base.copy(expeditions = expeditions) }
         .combine(worldInteraction) { base, interaction -> base.copy(worldInteraction = interaction) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ZleeperUiState())
 
@@ -97,18 +129,48 @@ class ZleeperViewModel @Inject constructor(
         settingsRepository.completeOnboarding()
     }
 
-    fun saveSleepPlan(sleep: Int, wake: Int, duration: Int) = launchOperation { settingsRepository.setSleepPlan(sleep, wake, duration) }
+    fun saveSleepPlan(sleep: Int, wake: Int, duration: Int) = launchOperation {
+        settingsRepository.setSleepPlan(sleep, wake, duration)
+        if (state.value.settings.alarmEnabled) wakeAlarmScheduler.schedule(nextOccurrence(wake))
+        if (state.value.settings.windDownReminderEnabled) windDownReminderScheduler.schedule(nextOccurrence((sleep - 60 + 1440) % 1440))
+    }
     fun beginSleep(windDownComplete: Boolean) = launchOperation {
         sleepRepository.begin(state.value.settings.targetSleepMinutes, state.value.settings.targetWakeMinutes, windDownComplete)
         if (sleepSignalSource.isAvailable()) sleepSignalSource.subscribe()
     }
     fun wake() = launchOperation { state.value.activeSession?.let { sleepRepository.requestWake(it.id, System.currentTimeMillis()) }; sleepSignalSource.unsubscribe() }
-    fun finalizeMorning() = launchOperation { state.value.pendingReview?.let { val finalized = sleepRepository.finalize(it.id, null); morningResult.value = nightResolutionService.resolve(finalized.id, state.value.settings.targetDurationMinutes) } }
-    fun dismissMorningReveal() { morningResult.value = null }
+    fun finalizeMorning(correctedStartEpochMs: Long? = null, correctedEndEpochMs: Long? = null, mood: Int? = null, note: String = "") = launchOperation {
+        state.value.pendingReview?.let {
+            if (mood != null) {
+                require(mood in 1..5)
+                val now = System.currentTimeMillis()
+                val existing = morningDao.note(it.id)
+                morningDao.put(MorningNoteEntity(existing?.id ?: "morning-note:${it.id}", it.id, mood, note.trim().take(500), existing?.createdAtEpochMs ?: now, now))
+            }
+            val correction = if (correctedStartEpochMs != null && correctedEndEpochMs != null) {
+                SleepReviewCorrection(correctedStartEpochMs, correctedEndEpochMs)
+            } else null
+            sleepRepository.finalize(it.id, correction)
+        }
+    }
+    fun resumePendingResolution() = launchOperation {
+        val pending = state.value.pendingResolution
+            ?: state.value.pendingReveal?.let { expedition -> state.value.sessions.firstOrNull { it.id == expedition.sleepSessionId } }
+        pending?.let { session ->
+            val reflected = morningDao.note(session.id) != null
+            morningResult.value = nightResolutionService.resolve(session.id, state.value.settings.targetDurationMinutes, reflected)
+        }
+    }
+    fun dismissMorningReveal() = launchOperation {
+        morningResult.value?.let { settingsRepository.markExpeditionRevealed(it.expeditionId) }
+        morningResult.value = null
+    }
     fun dismissWorldInteraction() { worldInteraction.value = null }
     fun interactWith(contentId: String, sourceId: String, regionId: String) = launchOperation {
-        content.dialogue[contentId]?.let { lines ->
-            val line = lines.first()
+        content.dialogue[contentId]?.takeIf { it.isNotEmpty() }?.let { lines ->
+            val cursor = dialogueCursors[contentId] ?: 0
+            val line = lines[cursor % lines.size]
+            dialogueCursors[contentId] = (cursor + 1) % lines.size
             worldInteraction.value = WorldInteraction(line.speaker, line.text, WorldInteractionKind.DIALOGUE)
             return@launchOperation
         }
@@ -152,10 +214,23 @@ class ZleeperViewModel @Inject constructor(
         inventoryDao.updateInstance(instance.copy(equippedSlot = effect.slot))
         inventoryDao.putEquipment(EquipmentSlotEntity(effect.slot, instance.instanceId, System.currentTimeMillis()))
     }
-    fun renamePet(name: String) = launchOperation { petDao.pet()?.let { petDao.update(it.copy(displayName = name.trim().take(24), updatedAtEpochMs = System.currentTimeMillis())) } }
+    fun renamePet(name: String) = launchOperation {
+        val clean = name.trim().take(24)
+        require(clean.length >= 2) { "Pet name must contain at least two characters" }
+        petDao.pet()?.let { petDao.update(it.copy(displayName = clean, updatedAtEpochMs = System.currentTimeMillis())) }
+    }
+    fun markPermissionExplanations() = launchOperation {
+        settingsRepository.markActivityPermissionExplained()
+        settingsRepository.markNotificationPermissionExplained()
+    }
     fun setAlarmEnabled(value: Boolean) = launchOperation {
-        settingsRepository.setAlarmEnabled(value)
-        if (value) wakeAlarmScheduler.schedule(nextOccurrence(state.value.settings.targetWakeMinutes)) else wakeAlarmScheduler.cancel()
+        if (value) {
+            wakeAlarmScheduler.schedule(nextOccurrence(state.value.settings.targetWakeMinutes))
+            settingsRepository.setAlarmEnabled(true)
+        } else {
+            wakeAlarmScheduler.cancel()
+            settingsRepository.setAlarmEnabled(false)
+        }
     }
     fun setWindDownReminderEnabled(value: Boolean) = launchOperation { settingsRepository.setWindDownReminderEnabled(value); if (value) windDownReminderScheduler.schedule(nextOccurrence((state.value.settings.targetSleepMinutes - 60 + 1440) % 1440)) else windDownReminderScheduler.cancel() }
     fun setLargeControls(value: Boolean) = launchOperation { settingsRepository.setLargeControls(value) }

@@ -14,12 +14,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Pets
@@ -229,11 +228,11 @@ fun PlatformScene(
 
         interaction?.let { message ->
             Surface(
-                Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = if (largeControls) 118.dp else 104.dp),
+                onClick = onDismissInteraction,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = if (largeControls) 118.dp else 104.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = .97f),
                 shape = RoundedCornerShape(24.dp),
                 shadowElevation = 10.dp,
-                onClick = onDismissInteraction,
             ) {
                 Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
@@ -249,8 +248,8 @@ fun PlatformScene(
         val controlSize = if (largeControls) 72.dp else 62.dp
         val movement: @Composable () -> Unit = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HoldControl(Icons.Rounded.ArrowBack, "Move left", "move-left", controlSize, controlOpacity) { pressed -> if (pressed) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); input = input.copy(horizontal = if (pressed) -1f else if (input.horizontal < 0f) 0f else input.horizontal) }
-                HoldControl(Icons.Rounded.ArrowForward, "Move right", "move-right", controlSize, controlOpacity) { pressed -> if (pressed) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); input = input.copy(horizontal = if (pressed) 1f else if (input.horizontal > 0f) 0f else input.horizontal) }
+                HoldControl(Icons.AutoMirrored.Rounded.ArrowBack, "Move left", "move-left", controlSize, controlOpacity) { pressed -> if (pressed) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); input = input.copy(horizontal = if (pressed) -1f else if (input.horizontal < 0f) 0f else input.horizontal) }
+                HoldControl(Icons.AutoMirrored.Rounded.ArrowForward, "Move right", "move-right", controlSize, controlOpacity) { pressed -> if (pressed) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); input = input.copy(horizontal = if (pressed) 1f else if (input.horizontal > 0f) 0f else input.horizontal) }
             }
         }
         val actions: @Composable () -> Unit = {

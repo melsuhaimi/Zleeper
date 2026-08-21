@@ -44,7 +44,7 @@ class NightResolutionService @Inject constructor(
     private val content: GameContentRepository,
     private val resolver: ExpeditionResolver,
 ) {
-    suspend fun resolve(sessionId: String, targetDurationMinutes: Int, reflected: Boolean = true): MorningResult = database.withTransaction {
+    suspend fun resolve(sessionId: String, targetDurationMinutes: Int, reflected: Boolean): MorningResult = database.withTransaction {
         val session = requireNotNull(sleepDao.session(sessionId))
         require(session.state == "FINALIZED" || session.state == "EXPEDITION_RESOLVED")
         expeditionDao.forSession(sessionId)?.takeIf { it.status == "RESOLVED" }?.let { existing ->

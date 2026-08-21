@@ -73,5 +73,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao interface MorningDao {
     @Query("SELECT * FROM morning_note WHERE sleepSessionId = :sessionId") suspend fun note(sessionId: String): MorningNoteEntity?
+    @Query("SELECT * FROM morning_note ORDER BY createdAtEpochMs DESC") fun notes(): Flow<List<MorningNoteEntity>>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun put(value: MorningNoteEntity)
 }

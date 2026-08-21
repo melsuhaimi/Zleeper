@@ -1,8 +1,11 @@
 package com.zleeper.sleepapp.navigation
 
 import android.Manifest
+import android.app.AlarmManager
+import android.content.pm.PackageManager
 import android.content.Intent
 import android.os.Build
+import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -21,7 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -36,7 +38,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Pets
 import androidx.compose.material.icons.outlined.Security
@@ -44,6 +46,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.WbTwilight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -55,6 +58,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -76,6 +80,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.zleeper.sleepapp.data.content.RegionDefinition
 import com.zleeper.sleepapp.data.local.preferences.ThemePreference
 import com.zleeper.sleepapp.data.local.preferences.MotionPreference
@@ -99,6 +108,9 @@ import kotlin.math.roundToInt
 internal fun OnboardingFlow(state: ZleeperUiState, viewModel: ZleeperViewModel) {
     var step by rememberSaveable { mutableIntStateOf(0) }
     var petName by rememberSaveable { mutableStateOf("Lumi") }
+    var bedtime by rememberSaveable { mutableIntStateOf(state.settings.targetSleepMinutes) }
+    var wakeTime by rememberSaveable { mutableIntStateOf(state.settings.targetWakeMinutes) }
+    var duration by rememberSaveable { mutableIntStateOf(state.settings.targetDurationMinutes) }
     val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { step = 4 }
     val titles = listOf("Rest opens the trail", "Meet your Moonmoth", "Choose your rhythm", "Private by design", "The grove is listening")
     val subtitles = listOf(
@@ -109,11 +121,12 @@ internal fun OnboardingFlow(state: ZleeperUiState, viewModel: ZleeperViewModel) 
         "Your first trail, quests, and keepsakes are ready.",
     )
     StorybookBackdrop(Modifier.fillMaxSize()) {
-        Column(
-            Modifier.fillMaxSize().padding(horizontal = 26.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 26.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 repeat(5) { index ->
                     Box(
                         Modifier.weight(1f).height(4.dp).background(
@@ -122,11 +135,11 @@ internal fun OnboardingFlow(state: ZleeperUiState, viewModel: ZleeperViewModel) 
                         ),
                     )
                 }
-            }
-            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                PetSprite("glimmerling", if (step == 4) PetPose.CELEBRATE else PetPose.IDLE, rememberPetFrame(step != 0 && state.settings.motion == MotionPreference.FULL, step), Modifier.size(260.dp))
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            } }
+            item { Box(Modifier.fillMaxWidth().height(if (step == 2) 160.dp else 250.dp), contentAlignment = Alignment.Center) {
+                PetSprite("glimmerling", if (step == 4) PetPose.CELEBRATE else PetPose.IDLE, rememberPetFrame(step != 0 && state.settings.motion == MotionPreference.FULL, step), Modifier.size(if (step == 2) 160.dp else 250.dp))
+            } }
+            item { Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text("STEP ${step + 1} OF 5", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                 Text(titles[step], style = MaterialTheme.typography.displaySmall)
                 Text(subtitles[step], color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge)
@@ -140,19 +153,26 @@ internal fun OnboardingFlow(state: ZleeperUiState, viewModel: ZleeperViewModel) 
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                if (step == 2) ScheduleSummary(state.settings.targetSleepMinutes, state.settings.targetWakeMinutes, state.settings.targetDurationMinutes)
+                if (step == 2) {
+                    GlassPanel(Modifier.fillMaxWidth()) {
+                        PlanSlider("Bedtime", formatMinutes(bedtime), bedtime.toFloat(), 0f..1425f) { bedtime = ((it / 15f).roundToInt() * 15).coerceIn(0, 1439) }
+                        PlanSlider("Wake", formatMinutes(wakeTime), wakeTime.toFloat(), 0f..1425f) { wakeTime = ((it / 15f).roundToInt() * 15).coerceIn(0, 1439) }
+                        PlanSlider("Target duration", "${duration / 60}h ${duration % 60}m", duration.toFloat(), 180f..900f) { duration = ((it / 15f).roundToInt() * 15).coerceIn(180, 900) }
+                    }
+                }
                 state.operationError?.let { ErrorText(it) }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (step > 0) OutlinedButton({ step-- }, Modifier.weight(.38f).height(54.dp)) { Text("Back") }
                     Button(
                         onClick = {
                             when (step) {
-                                2 -> { if (!state.settings.onboardingComplete) viewModel.saveSleepPlan(22 * 60 + 30, 7 * 60, 8 * 60); step++ }
+                                2 -> { viewModel.saveSleepPlan(bedtime, wakeTime, duration); step++ }
                                 3 -> {
                                     val requested = buildList {
                                         if (Build.VERSION.SDK_INT >= 29) add(Manifest.permission.ACTIVITY_RECOGNITION)
                                         if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
                                     }
+                                    viewModel.markPermissionExplanations()
                                     if (requested.isEmpty()) step = 4 else permissions.launch(requested.toTypedArray())
                                 }
                                 4 -> viewModel.createPet(petName)
@@ -162,7 +182,7 @@ internal fun OnboardingFlow(state: ZleeperUiState, viewModel: ZleeperViewModel) 
                         modifier = Modifier.weight(1f).height(54.dp),
                     ) { Text(if (step == 4) "Enter the grove" else "Continue") }
                 }
-            }
+            } }
         }
     }
 }
@@ -337,18 +357,88 @@ private fun ScheduleSummary(sleep: Int, wake: Int, duration: Int) {
 @Composable
 internal fun MorningReview(state: ZleeperUiState, viewModel: ZleeperViewModel) {
     val session = requireNotNull(state.pendingReview)
+    val sessionEnd = requireNotNull(session.sessionEndEpochMs)
+    val sessionMinutes = ((sessionEnd - session.sessionStartEpochMs) / 60_000L).toInt().coerceAtLeast(0)
+    val estimatedStartOffset = (((session.estimatedSleepStartEpochMs ?: session.sessionStartEpochMs) - session.sessionStartEpochMs) / 60_000L).toInt().coerceIn(0, (sessionMinutes - 1).coerceAtLeast(0))
+    val estimatedEndOffset = (((session.estimatedSleepEndEpochMs ?: sessionEnd) - session.sessionStartEpochMs) / 60_000L).toInt().coerceIn((estimatedStartOffset + 1).coerceAtMost(sessionMinutes), sessionMinutes)
+    var correcting by rememberSaveable(session.id) { mutableStateOf(false) }
+    var startOffset by rememberSaveable(session.id) { mutableIntStateOf(estimatedStartOffset) }
+    var endOffset by rememberSaveable(session.id) { mutableIntStateOf(estimatedEndOffset) }
+    val savedNote = state.morningNotes.firstOrNull { it.sleepSessionId == session.id }
+    var mood by rememberSaveable(session.id) { mutableStateOf(savedNote?.mood) }
+    var note by rememberSaveable(session.id) { mutableStateOf(savedNote?.note.orEmpty()) }
     StorybookBackdrop(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().padding(26.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            SectionHeader("Good morning", "How did the night feel?")
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(26.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
+            item { SectionHeader("Good morning", "How did the night feel?") }
+            item { Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 Text("${session.estimatedSleepMinutes ?: 0}", style = MaterialTheme.typography.displaySmall)
                 Text("estimated minutes", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(18.dp))
                 Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = CircleShape) { Text("${session.confidence?.lowercase()?.replaceFirstChar { it.uppercase() }} confidence", Modifier.padding(horizontal = 16.dp, vertical = 9.dp)) }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            } }
+            item { Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text("This is a phone-based estimate, not medically verified sleep. Confirming resolves the stored expedition exactly once.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(viewModel::finalizeMorning, Modifier.fillMaxWidth().height(58.dp)) { Text("Confirm and reveal journey") }
+                if (correcting && sessionMinutes >= 2) {
+                    GlassPanel(Modifier.fillMaxWidth()) {
+                        PlanSlider("Fell asleep", "${startOffset}m after starting", startOffset.toFloat(), 0f..(sessionMinutes - 1).toFloat()) {
+                            startOffset = it.roundToInt().coerceIn(0, endOffset - 1)
+                        }
+                        PlanSlider("Woke up", "${sessionMinutes - endOffset}m before ending", endOffset.toFloat(), 1f..sessionMinutes.toFloat()) {
+                            endOffset = it.roundToInt().coerceIn(startOffset + 1, sessionMinutes)
+                        }
+                    }
+                }
+                if (sessionMinutes >= 2) OutlinedButton({ correcting = !correcting }, Modifier.fillMaxWidth()) { Text(if (correcting) "Use original estimate" else "Correct the estimate") }
+                GlassPanel(Modifier.fillMaxWidth()) {
+                    Text("Morning reflection", style = MaterialTheme.typography.titleLarge)
+                    Text("Optional · adds a small reflection bonus", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(12.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("Rough", "Low", "Okay", "Good", "Rested").forEachIndexed { index, label ->
+                            val value = index + 1
+                            if (mood == value) Button({ mood = null; note = "" }) { Text(label) }
+                            else FilledTonalButton({ mood = value }) { Text(label) }
+                        }
+                    }
+                    if (mood != null) {
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = note,
+                            onValueChange = { note = it.take(500) },
+                            label = { Text("A note for later (optional)") },
+                            supportingText = { Text("${note.length}/500") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            maxLines = 4,
+                        )
+                    }
+                }
+                Button(
+                    onClick = {
+                        if (correcting) viewModel.finalizeMorning(session.sessionStartEpochMs + startOffset * 60_000L, session.sessionStartEpochMs + endOffset * 60_000L, mood, note)
+                        else viewModel.finalizeMorning(mood = mood, note = note)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(58.dp),
+                ) { Text(if (correcting) "Save correction and reveal" else "Confirm and reveal journey") }
+            } }
+        }
+    }
+}
+
+@Composable
+internal fun MorningResolutionPending(sessionId: String, error: String?, onRetry: () -> Unit) {
+    LaunchedEffect(sessionId) { onRetry() }
+    StorybookBackdrop(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().padding(26.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            if (error == null) {
+                CircularProgressIndicator()
+                Spacer(Modifier.height(18.dp))
+                Text("Reading the night trail", style = MaterialTheme.typography.headlineMedium)
+                Text("Your saved session is safe while rewards resolve.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                ErrorText(error)
+                Spacer(Modifier.height(14.dp))
+                Button(onRetry) { Text("Try resolving again") }
             }
         }
     }
@@ -389,19 +479,28 @@ internal fun JournalScreen(state: ZleeperUiState) {
         if (resolved.isEmpty()) {
             item {
                 Column(Modifier.fillMaxWidth().padding(vertical = 44.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.MenuBook, null, Modifier.size(46.dp), tint = MaterialTheme.colorScheme.secondary)
+                    Icon(Icons.AutoMirrored.Outlined.MenuBook, null, Modifier.size(46.dp), tint = MaterialTheme.colorScheme.secondary)
                     Spacer(Modifier.height(14.dp)); Text("Your first page is waiting", style = MaterialTheme.typography.titleLarge)
                     Text("A finalized night will appear here.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else items(resolved, key = { it.id }) { session ->
+            val morningNote = state.morningNotes.firstOrNull { it.sleepSessionId == session.id }
             Surface(onClick = { expandedSessionId = if (expandedSessionId == session.id) null else session.id }, modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(24.dp)) {
                 Column(Modifier.padding(18.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(formatDate(session.sessionStartEpochMs), fontWeight = FontWeight.Bold); Text("${session.estimatedSleepMinutes ?: 0} min", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) }
                     Spacer(Modifier.height(10.dp)); HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant); Spacer(Modifier.height(10.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("${session.confidence?.lowercase()?.replaceFirstChar { it.uppercase() }} confidence", color = MaterialTheme.colorScheme.onSurfaceVariant); Text(humanize(session.resolutionMethod ?: "manual"), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     AnimatedVisibility(expandedSessionId == session.id) {
-                        Column { Spacer(Modifier.height(12.dp)); Text("Estimated window", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary); Text("${session.estimatedSleepStartEpochMs?.let(::formatDate) ?: "Not available"} — ${session.estimatedSleepEndEpochMs?.let(::formatDate) ?: "Not available"}", color = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.height(8.dp)); Text(if (session.windDownCompleted) "Wind-down completed" else "No wind-down recorded", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        Column {
+                            Spacer(Modifier.height(12.dp)); Text("Estimated window", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                            Text("${session.estimatedSleepStartEpochMs?.let(::formatDate) ?: "Not available"} — ${session.estimatedSleepEndEpochMs?.let(::formatDate) ?: "Not available"}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(8.dp)); Text(if (session.windDownCompleted) "Wind-down completed" else "No wind-down recorded", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            morningNote?.let { reflection ->
+                                Spacer(Modifier.height(10.dp)); Text("Morning reflection · ${listOf("Rough", "Low", "Okay", "Good", "Rested")[reflection.mood - 1]}", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                if (reflection.note.isNotBlank()) Text(reflection.note, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
@@ -422,7 +521,7 @@ private enum class MenuPage(val title: String, val subtitle: String, val icon: I
     PET("Pet profile", "Name, growth, and affinity", Icons.Outlined.Pets),
     EQUIPMENT("Equipment", "Four meaningful slots", Icons.Outlined.Backpack),
     INVENTORY("Inventory", "Keepsakes from the trail", Icons.Outlined.Inventory2),
-    QUESTS("Quest log", "Promises and discoveries", Icons.Outlined.MenuBook),
+    QUESTS("Quest log", "Promises and discoveries", Icons.AutoMirrored.Outlined.MenuBook),
     COLLECTION("Collections", "Creatures, relics, and places", Icons.Outlined.CollectionsBookmark),
     SETTINGS("Settings", "Sleep, sound, and controls", Icons.Outlined.Settings),
     PERMISSIONS("Permissions", "Optional platform access", Icons.Outlined.Security),
@@ -433,6 +532,15 @@ private enum class DataAction { SLEEP_HISTORY, GAME_PROGRESS, ALL_DATA }
 @Composable
 internal fun MenuScreen(state: ZleeperUiState, viewModel: ZleeperViewModel) {
     val context = LocalContext.current
+    var permissionRefresh by remember { mutableIntStateOf(0) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) permissionRefresh++ }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val activityPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { permissionRefresh++ }
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { permissionRefresh++ }
     var selected by rememberSaveable { mutableStateOf<MenuPage?>(null) }
     val ownedQuantities = remember(state.inventoryStacks, state.inventoryInstances) {
         buildMap {
@@ -456,7 +564,7 @@ internal fun MenuScreen(state: ZleeperUiState, viewModel: ZleeperViewModel) {
             }
         } else {
             item { OutlinedButton({ selected = null }) { Text("Back") } }
-            when (selected) {
+            when (requireNotNull(selected)) {
                 MenuPage.PET -> item { PetProfile(state, viewModel) }
                 MenuPage.EQUIPMENT -> items(listOf("HEAD", "CHARM", "PACK", "RELIC")) { slot -> EquipmentSlotCard(slot, state, ownedItems, viewModel) }
                 MenuPage.INVENTORY -> {
@@ -475,7 +583,15 @@ internal fun MenuScreen(state: ZleeperUiState, viewModel: ZleeperViewModel) {
                     }
                 }
                 MenuPage.SETTINGS -> item { SettingsPanel(state, viewModel) }
-                MenuPage.PERMISSIONS -> item { GlassPanel(Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Notifications, null, tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.height(10.dp)); Text("Optional, never a gate", style = MaterialTheme.typography.titleLarge); Text("Activity Recognition improves estimates. Notifications deliver wake and wind-down alerts. Manual sleep remains fully playable without either.", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+                MenuPage.PERMISSIONS -> item {
+                    PermissionsPanel(
+                        refreshKey = permissionRefresh,
+                        onRequestActivity = { viewModel.markPermissionExplanations(); activityPermission.launch(ACTIVITY_RECOGNITION_PERMISSION) },
+                        onRequestNotifications = { viewModel.markPermissionExplanations(); notificationPermission.launch(NOTIFICATION_PERMISSION) },
+                        onRequestExactAlarm = { if (Build.VERSION.SDK_INT >= 31) context.startActivity(Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, "package:${context.packageName}".toUri())) },
+                        onOpenSettings = { context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri())) },
+                    )
+                }
                 MenuPage.DATA -> item {
                     var pendingAction by rememberSaveable { mutableStateOf<DataAction?>(null) }
                     GlassPanel(Modifier.fillMaxWidth()) {
@@ -495,9 +611,50 @@ internal fun MenuScreen(state: ZleeperUiState, viewModel: ZleeperViewModel) {
                         }
                     }
                 }
-                null -> Unit
             }
         }
+    }
+}
+
+@Composable
+private fun PermissionsPanel(
+    refreshKey: Int,
+    onRequestActivity: () -> Unit,
+    onRequestNotifications: () -> Unit,
+    onRequestExactAlarm: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    val context = LocalContext.current
+    val activityGranted = remember(refreshKey) { Build.VERSION.SDK_INT < 29 || ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED }
+    val notificationsGranted = remember(refreshKey) { Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED }
+    val exactAlarmGranted = remember(refreshKey) { Build.VERSION.SDK_INT < 31 || context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms() }
+    GlassPanel(Modifier.fillMaxWidth()) {
+        Icon(Icons.Outlined.Notifications, null, tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(10.dp))
+        Text("Optional, never a gate", style = MaterialTheme.typography.titleLarge)
+        Text("Manual sleep remains fully playable without either permission.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(18.dp))
+        PermissionRow("Activity Recognition", "Improves phone-based sleep estimates", activityGranted, Build.VERSION.SDK_INT >= 29, onRequestActivity)
+        HorizontalDivider(Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+        PermissionRow("Notifications", "Delivers wake and wind-down alerts", notificationsGranted, Build.VERSION.SDK_INT >= 33, onRequestNotifications)
+        HorizontalDivider(Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+        PermissionRow("Alarms & reminders", "Allows the wake alarm to ring precisely", exactAlarmGranted, Build.VERSION.SDK_INT >= 31, onRequestExactAlarm)
+        if (!activityGranted || !notificationsGranted || !exactAlarmGranted) {
+            Spacer(Modifier.height(14.dp))
+            OutlinedButton(onOpenSettings, Modifier.fillMaxWidth()) { Text("Open system settings") }
+        }
+    }
+}
+
+@Composable
+private fun PermissionRow(label: String, detail: String, granted: Boolean, requestable: Boolean, onRequest: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(label, fontWeight = FontWeight.SemiBold)
+            Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+            Text(if (granted) "Allowed" else "Not allowed", color = if (granted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelLarge)
+        }
+        if (!granted && requestable) FilledTonalButton(onRequest) { Text("Allow") }
     }
 }
 
@@ -592,3 +749,6 @@ private fun equipmentSlotFor(itemId: String): String? = when (itemId) {
     else -> null
 }
 private fun raritySymbol(rarity: String): String = when (rarity) { "COMMON" -> "●"; "UNCOMMON" -> "◆"; "RARE" -> "✦"; "EPIC" -> "✧"; else -> "★" }
+
+private const val ACTIVITY_RECOGNITION_PERMISSION = "android.permission.ACTIVITY_RECOGNITION"
+private const val NOTIFICATION_PERMISSION = "android.permission.POST_NOTIFICATIONS"

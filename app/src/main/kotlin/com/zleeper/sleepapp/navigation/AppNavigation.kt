@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +52,14 @@ fun AppNavigation(
     }
     if (state.morningResult != null) {
         MorningReveal(state, viewModel)
+        return
+    }
+    state.pendingResolution?.let { session ->
+        MorningResolutionPending(session.id, state.operationError, viewModel::resumePendingResolution)
+        return
+    }
+    state.pendingReveal?.let { expedition ->
+        MorningResolutionPending(expedition.id, state.operationError, viewModel::resumePendingResolution)
         return
     }
 
@@ -124,6 +132,6 @@ fun TopLevelNavigationBar(navigationState: NavigationState) {
 private fun AppRoute.icon(): ImageVector = when (this) {
     AppRoute.WORLD -> Icons.Outlined.Public
     AppRoute.SLEEP -> Icons.Outlined.Bedtime
-    AppRoute.JOURNAL -> Icons.Outlined.MenuBook
+    AppRoute.JOURNAL -> Icons.AutoMirrored.Outlined.MenuBook
     AppRoute.MENU -> Icons.Outlined.Menu
 }
