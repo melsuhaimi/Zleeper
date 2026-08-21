@@ -1,0 +1,6 @@
+[
+{"id":"loot_grove_common","rolls":2,"entries":[{"item_id":"item_material_dewdrop","weight":50,"minimum":1,"maximum":3},{"item_id":"item_material_softmoss","weight":35,"minimum":1,"maximum":2},{"item_id":"item_material_starthread","weight":15,"minimum":1,"maximum":1}]},
+{"id":"loot_grove_hidden","rolls":1,"entries":[{"item_id":"item_equipment_bell_charm","weight":20,"minimum":1,"maximum":1},{"item_id":"item_collectible_blue_spore","weight":80,"minimum":1,"maximum":1}]},
+{"id":"loot_bramble_common","rolls":2,"entries":[{"item_id":"item_material_bramblewood","weight":55,"minimum":1,"maximum":3},{"item_id":"item_material_starthread","weight":30,"minimum":1,"maximum":2},{"item_id":"item_material_cloudfluff","weight":15,"minimum":1,"maximum":1}]},
+{"id":"loot_bramble_rare","rolls":1,"entries":[{"item_id":"item_relic_cloudglass","weight":65,"minimum":1,"maximum":1},{"item_id":"item_relic_dawn_compass","weight":5,"minimum":1,"maximum":1},{"item_id":"item_equipment_mushroom_crown","weight":30,"minimum":1,"maximum":1}]}
+]

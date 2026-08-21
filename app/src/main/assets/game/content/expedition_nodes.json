@@ -1,0 +1,15 @@
+[
+{"id":"node_grove_start","region_id":"region_whispering_grove","type":"START","depth_cost":0,"next":["node_grove_dewpath"],"text_key":"expedition.grove.start"},
+{"id":"node_grove_dewpath","region_id":"region_whispering_grove","type":"PATH","depth_cost":12,"next":["node_grove_moss","node_grove_whisper"],"text_key":"expedition.grove.dewpath"},
+{"id":"node_grove_moss","region_id":"region_whispering_grove","type":"REWARD","depth_cost":14,"loot_table_id":"loot_grove_common","next":["node_grove_hollow"],"text_key":"expedition.grove.moss"},
+{"id":"node_grove_whisper","region_id":"region_whispering_grove","type":"EVENT","depth_cost":18,"focus_required":4,"next":["node_grove_hidden","node_grove_hollow"],"text_key":"expedition.grove.whisper"},
+{"id":"node_grove_hidden","region_id":"region_whispering_grove","type":"REWARD","depth_cost":20,"focus_required":6,"loot_table_id":"loot_grove_hidden","next":["node_grove_hollow"],"text_key":"expedition.grove.hidden"},
+{"id":"node_grove_hollow","region_id":"region_whispering_grove","type":"DESTINATION","depth_cost":10,"loot_table_id":"loot_grove_common","text_key":"expedition.grove.hollow"},
+{"id":"node_bramble_start","region_id":"region_bramble_rise","type":"START","depth_cost":0,"next":["node_bramble_slope"],"text_key":"expedition.bramble.start"},
+{"id":"node_bramble_slope","region_id":"region_bramble_rise","type":"PATH","depth_cost":18,"next":["node_bramble_thorns","node_bramble_cloud"],"text_key":"expedition.bramble.slope"},
+{"id":"node_bramble_thorns","region_id":"region_bramble_rise","type":"EVENT","depth_cost":22,"next":["node_bramble_cache"],"text_key":"expedition.bramble.thorns"},
+{"id":"node_bramble_cloud","region_id":"region_bramble_rise","type":"EVENT","depth_cost":24,"focus_required":8,"next":["node_bramble_relic"],"text_key":"expedition.bramble.cloud"},
+{"id":"node_bramble_cache","region_id":"region_bramble_rise","type":"REWARD","depth_cost":18,"loot_table_id":"loot_bramble_common","next":["node_bramble_peak"],"text_key":"expedition.bramble.cache"},
+{"id":"node_bramble_relic","region_id":"region_bramble_rise","type":"REWARD","depth_cost":28,"focus_required":10,"loot_table_id":"loot_bramble_rare","next":["node_bramble_peak"],"text_key":"expedition.bramble.relic"},
+{"id":"node_bramble_peak","region_id":"region_bramble_rise","type":"DESTINATION","depth_cost":16,"loot_table_id":"loot_bramble_common","text_key":"expedition.bramble.peak"}
+]

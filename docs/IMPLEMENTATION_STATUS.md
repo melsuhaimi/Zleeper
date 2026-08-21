@@ -1,23 +1,27 @@
 # Zleeper implementation status
 
-## Completed
+## Full vertical-slice candidate
 
-P1 foundation started:
+- Android application ID `com.zleeper.sleepapp`, product name Zleeper, min SDK 23
+- Kotlin, Jetpack Compose, Material 3, Hilt, Room, DataStore, WorkManager, and KSP
+- onboarding plus World, Sleep, Journal, Menu, and Morning navigation flows
+- the complete 18-table Room model and append-only inventory/progression records
+- Sleep API signal ingestion, wake/wind-down scheduling, boot recovery, and
+  48-hour raw-signal retention
+- deterministic, idempotent morning resolution in a Room transaction
+- one persistent pet with two authored forms and all 12 required animations
+- progression through level 110, inventory, equipment, quests, collections,
+  world unlocks, discoveries, notes, and expedition history
+- deterministic game simulation with touch input, parallax region scenes, NPCs,
+  content validation, sound controls, and reduced-motion support
+- authored JSON content for two regions, six quests, sixteen items, three NPCs,
+  expedition nodes, dialogue, loot tables, and progression rules
+- original runtime artwork and audio with reproducible asset-generation scripts
+- local JSON export and destructive local-data deletion controls
+- JVM tests, Android content/schema tests, lint/unit-test/debug-APK CI stages
 
-- Android application ID: `com.zleeper.sleepapp`
-- product name: Zleeper
-- single `:app` module
-- Kotlin with Jetpack Compose and Material 3
-- single-activity application shell
-- top-level World, Sleep, Journal, and Menu navigation boundary
-- Hilt application graph
-- injected Room database and schema-export foundation (entities begin with P2)
-- DataStore preferences foundation
-- JVM and Compose test foundations
-- exact-commit GitHub Actions verification and debug APK upload
+## Release boundary
 
-## Not implemented
-
-No product behavior has been invented at this checkpoint. Sleep, pet, expedition,
-quest, inventory, world, and game-runtime features remain governed by the source
-of truth architecture and its P2-P16 implementation order.
+The implementation is ready for exact-commit CI verification. Distribution
+keystore material and store credentials remain external to the repository by
+design. The existing workflow has not been changed as part of this implementation.

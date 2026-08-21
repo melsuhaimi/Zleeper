@@ -1,0 +1,8 @@
+[
+{"item_id":"item_equipment_acorn_cap","slot":"HEAD","effect":"forage_bonus","amount":1},
+{"item_id":"item_equipment_bell_charm","slot":"CHARM","effect":"interaction_reveal","amount":1},
+{"item_id":"item_equipment_leaf_pack","slot":"PACK","effect":"material_capacity","amount":3},
+{"item_id":"item_relic_cloudglass","slot":"RELIC","effect":"focus_route_bonus","amount":2},
+{"item_id":"item_equipment_mushroom_crown","slot":"HEAD","effect":"discovery_bonus","amount":1},
+{"item_id":"item_relic_dawn_compass","slot":"RELIC","effect":"expedition_depth_bonus","amount":4}
+]

@@ -1,0 +1,5 @@
+{
+"npc_keeper_orin":[{"id":"orin_welcome","speaker":"Keeper Orin","text":"The hearth keeps a place for every honest rest. Return in the morning and we will read the trail together."},{"id":"orin_quest","speaker":"Keeper Orin","text":"Pip found a quiet path beyond the dew. Your Moonmoth may notice what ours missed."}],
+"npc_pip":[{"id":"pip_greeting","speaker":"Pip","text":"Dew gathers under the blue caps. Step lightly and it will stay bright."}],
+"npc_mara":[{"id":"mara_greeting","speaker":"Mara","text":"The rise changes with every cloud. A compass helps, but a patient eye helps more."}]
+}

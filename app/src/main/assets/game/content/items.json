@@ -1,0 +1,18 @@
+[
+{"id":"item_material_dewdrop","name":"Dream Dew","description":"Cool beads gathered from moonlit leaves.","category":"MATERIAL","rarity":"COMMON","stackable":true,"icon_asset":"item/icon/item_material_dewdrop_icon.webp"},
+{"id":"item_material_softmoss","name":"Soft Moss","description":"Springy moss used by den builders.","category":"MATERIAL","rarity":"COMMON","stackable":true,"icon_asset":"item/icon/item_material_softmoss_icon.webp"},
+{"id":"item_material_starthread","name":"Star Thread","description":"A luminous fiber caught along the ridge.","category":"MATERIAL","rarity":"UNCOMMON","stackable":true,"icon_asset":"item/icon/item_material_starthread_icon.webp"},
+{"id":"item_consumable_minttea","name":"Moonmint Tea","description":"A fragrant world-use tonic for one extra interaction.","category":"CONSUMABLE","rarity":"COMMON","stackable":true,"icon_asset":"item/icon/item_consumable_minttea_icon.webp"},
+{"id":"item_equipment_acorn_cap","name":"Acorn Cap","description":"A jaunty cap with minor foraging utility.","category":"EQUIPMENT","rarity":"COMMON","stackable":false,"icon_asset":"item/icon/item_equipment_acorn_cap_icon.webp"},
+{"id":"item_equipment_bell_charm","name":"Hush Bell","description":"Reveals one quiet interaction each day.","category":"EQUIPMENT","rarity":"UNCOMMON","stackable":false,"icon_asset":"item/icon/item_equipment_bell_charm_icon.webp"},
+{"id":"item_equipment_leaf_pack","name":"Wayleaf Pack","description":"Adds room for expedition materials.","category":"EQUIPMENT","rarity":"UNCOMMON","stackable":false,"icon_asset":"item/icon/item_equipment_leaf_pack_icon.webp"},
+{"id":"item_relic_cloudglass","name":"Cloudglass Shard","description":"A relic that makes hidden paths shimmer.","category":"RELIC","rarity":"RARE","stackable":false,"icon_asset":"item/icon/item_relic_cloudglass_icon.webp"},
+{"id":"item_key_bramble_gate","name":"Bramble Key","description":"Opens the old woven gate.","category":"KEY","rarity":"UNCOMMON","stackable":false,"icon_asset":"item/icon/item_key_bramble_gate_icon.webp"},
+{"id":"item_quest_keepers_note","name":"Keeper's Note","description":"Directions written in walnut ink.","category":"QUEST","rarity":"COMMON","stackable":false,"icon_asset":"item/icon/item_quest_keepers_note_icon.webp"},
+{"id":"item_cosmetic_moon_ribbon","name":"Moon Ribbon","description":"A soft silver ribbon for Moonmoth antennae.","category":"COSMETIC","rarity":"RARE","stackable":false,"icon_asset":"item/icon/item_cosmetic_moon_ribbon_icon.webp"},
+{"id":"item_collectible_blue_spore","name":"Blue Spore Print","description":"A delicate print from the whispering grove.","category":"COLLECTIBLE","rarity":"UNCOMMON","stackable":false,"icon_asset":"item/icon/item_collectible_blue_spore_icon.webp"},
+{"id":"item_material_bramblewood","name":"Bramblewood","description":"Warm red timber from fallen thorn branches.","category":"MATERIAL","rarity":"COMMON","stackable":true,"icon_asset":"item/icon/item_material_bramblewood_icon.webp"},
+{"id":"item_material_cloudfluff","name":"Cloud Fluff","description":"A tuft snagged from low drifting cloud.","category":"MATERIAL","rarity":"RARE","stackable":true,"icon_asset":"item/icon/item_material_cloudfluff_icon.webp"},
+{"id":"item_equipment_mushroom_crown","name":"Mushroom Crown","description":"A spotted cap favored by grove visitors.","category":"EQUIPMENT","rarity":"RARE","stackable":false,"icon_asset":"item/icon/item_equipment_mushroom_crown_icon.webp"},
+{"id":"item_relic_dawn_compass","name":"Dawn Compass","description":"Points toward newly awakened places.","category":"RELIC","rarity":"EPIC","stackable":false,"icon_asset":"item/icon/item_relic_dawn_compass_icon.webp"}
+]

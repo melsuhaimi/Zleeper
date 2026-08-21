@@ -1,8 +1,11 @@
 .gradle/
+.gradle-user/
+.gradle-dist/
 .idea/
 .kotlin/
 local.properties
 **/build/
 *.iml
 captures/
+tools/assets/work/
 .DS_Store

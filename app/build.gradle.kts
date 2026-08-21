@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -53,6 +54,13 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.service)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.play.services.location)
+    implementation(libs.kotlinx.serialization.json)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
@@ -61,6 +69,7 @@ dependencies {
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
@@ -68,12 +77,46 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.room.testing)
+    testImplementation(libs.androidx.work.testing)
+    testImplementation(libs.androidx.navigation.testing)
+    testImplementation(libs.kotlinx.coroutines.test)
 
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+
+val validateGameAssets by tasks.registering {
+    group = "verification"
+    description = "Validates required production content and runtime assets."
+    val gameRoot = layout.projectDirectory.dir("src/main/assets/game")
+    inputs.dir(gameRoot)
+    doLast {
+        val required = listOf(
+            "content/content_manifest.json", "content/progression_rules_v1.json", "content/pet_species.json", "content/pet_forms.json",
+            "content/items.json", "content/equipment_effects.json", "content/quests.json", "content/regions.json", "content/scenes.json",
+            "content/expedition_nodes.json", "content/loot_tables.json", "content/dialogue/npcs.json",
+            "atlas/pet/pet_moonmoth_glimmerling_atlas.webp", "atlas/pet/pet_moonmoth_glimmerling_atlas.json",
+            "atlas/pet/pet_moonmoth_lanternwing_atlas.webp", "atlas/pet/pet_moonmoth_lanternwing_atlas.json",
+            "atlas/npc/npc_keeper_orin_atlas.webp", "atlas/npc/npc_keeper_orin_atlas.json",
+            "atlas/npc/npc_pip_atlas.webp", "atlas/npc/npc_pip_atlas.json", "atlas/npc/npc_mara_atlas.webp", "atlas/npc/npc_mara_atlas.json",
+        )
+        required.forEach { path ->
+            val file = gameRoot.file(path).asFile
+            check(file.isFile && file.length() > 0L) { "Missing or empty production asset: $path" }
+        }
+        gameRoot.asFile.walkTopDown().filter { it.isFile }.forEach { file ->
+            val relative = file.relativeTo(gameRoot.asFile).invariantSeparatorsPath
+            check(relative.matches(Regex("[a-z0-9_/]+\\.(json|webp|ogg)"))) { "Invalid runtime asset filename: $relative" }
+        }
+    }
+}
+
+tasks.named("preBuild").configure { dependsOn(validateGameAssets) }

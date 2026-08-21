@@ -1,0 +1,1 @@
+{"image":"npc_keeper_orin_atlas.webp","frame_width":128,"frame_height":128,"anchor":{"x":64,"y":124},"animations":{"idle":{"frames":[0],"fps":1,"loop":true},"talk":{"frames":[0,1],"fps":4,"loop":true},"gesture":{"frames":[1,2,1,0],"fps":5,"loop":false}}}
