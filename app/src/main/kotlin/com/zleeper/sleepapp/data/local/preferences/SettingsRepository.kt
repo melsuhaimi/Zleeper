@@ -29,6 +29,7 @@ data class AppSettings(
     val activityPermissionExplained: Boolean = false,
     val leftHandedControls: Boolean = false,
     val largeControls: Boolean = false,
+    val controlOpacity: Float = 0.90f,
 )
 
 @Singleton
@@ -48,6 +49,7 @@ class SettingsRepository @Inject constructor(private val store: DataStore<Prefer
             activityPermissionExplained = values[Keys.ACTIVITY_EXPLAINED] ?: false,
             leftHandedControls = values[Keys.LEFT_HANDED] ?: false,
             largeControls = values[Keys.LARGE_CONTROLS] ?: false,
+            controlOpacity = (values[Keys.CONTROL_OPACITY] ?: 0.90f).coerceIn(0.45f, 1f),
         )
     }
 
@@ -65,6 +67,7 @@ class SettingsRepository @Inject constructor(private val store: DataStore<Prefer
     suspend fun markActivityPermissionExplained() = update(Keys.ACTIVITY_EXPLAINED, true)
     suspend fun setLeftHandedControls(value: Boolean) = update(Keys.LEFT_HANDED, value)
     suspend fun setLargeControls(value: Boolean) = update(Keys.LARGE_CONTROLS, value)
+    suspend fun setControlOpacity(value: Float) = update(Keys.CONTROL_OPACITY, value.coerceIn(0.45f, 1f))
     suspend fun reset() { store.edit { it.clear() } }
 
     private suspend fun <T> update(key: Preferences.Key<T>, value: T) { store.edit { it[key] = value } }
@@ -83,5 +86,6 @@ class SettingsRepository @Inject constructor(private val store: DataStore<Prefer
         val ACTIVITY_EXPLAINED = booleanPreferencesKey("activity_permission_explained")
         val LEFT_HANDED = booleanPreferencesKey("left_handed_controls")
         val LARGE_CONTROLS = booleanPreferencesKey("large_controls")
+        val CONTROL_OPACITY = floatPreferencesKey("control_opacity")
     }
 }

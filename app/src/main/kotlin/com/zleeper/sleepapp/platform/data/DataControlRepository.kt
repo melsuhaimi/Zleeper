@@ -3,7 +3,7 @@ package com.zleeper.sleepapp.platform.data
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
-import androidx.room.RoomDatabase
+import androidx.room.withTransaction
 import com.zleeper.sleepapp.data.local.database.ZleeperDatabase
 import com.zleeper.sleepapp.data.local.preferences.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -39,6 +39,24 @@ class DataControlRepository @Inject constructor(@ApplicationContext private val 
     }
 
     suspend fun deleteAllLocalData() { withContext(Dispatchers.IO) { database.clearAllTables() }; settings.reset() }
+
+    suspend fun deleteSleepHistory() = withContext(Dispatchers.IO) {
+        database.withTransaction {
+            val sql = database.openHelper.writableDatabase
+            listOf("morning_note", "night_outcome", "expedition_reward", "expedition_path_node", "expedition", "sleep_signal", "sleep_session").forEach { table ->
+                sql.execSQL("DELETE FROM $table")
+            }
+        }
+    }
+
+    suspend fun resetGameProgress() = withContext(Dispatchers.IO) {
+        database.withTransaction {
+            val sql = database.openHelper.writableDatabase
+            listOf("pet_progression_event", "inventory_transaction", "equipment_slot", "inventory_instance", "inventory_stack", "quest_objective_progress", "quest_progress", "world_discovery", "world_unlock", "collection_entry", "pet").forEach { table ->
+                sql.execSQL("DELETE FROM $table")
+            }
+        }
+    }
 
     private companion object {
         val TABLES = listOf("sleep_session", "sleep_signal", "night_outcome", "expedition", "expedition_path_node", "expedition_reward", "pet", "pet_progression_event", "inventory_stack", "inventory_instance", "inventory_transaction", "equipment_slot", "quest_progress", "quest_objective_progress", "world_unlock", "world_discovery", "collection_entry", "morning_note")

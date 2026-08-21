@@ -13,18 +13,27 @@ class GameAudioController @Inject constructor(@ApplicationContext private val co
 
     fun playLoop(assetPath: String, volume: Float) {
         stop()
-        val descriptor = context.assets.openFd("game/$assetPath")
-        ambience = MediaPlayer().apply {
-            setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-            setDataSource(descriptor.fileDescriptor, descriptor.startOffset, descriptor.length)
-            descriptor.close()
-            isLooping = true
-            setVolume(volume.coerceIn(0f, 1f), volume.coerceIn(0f, 1f))
-            prepare()
-            start()
+        val player = MediaPlayer()
+        runCatching {
+            context.assets.openFd("game/$assetPath").use { descriptor ->
+                player.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+                player.setDataSource(descriptor.fileDescriptor, descriptor.startOffset, descriptor.length)
+            }
+            player.isLooping = true
+            player.setVolume(volume.coerceIn(0f, 1f), volume.coerceIn(0f, 1f))
+            player.setOnPreparedListener { it.start() }
+            player.setOnErrorListener { failed, _, _ -> failed.release(); if (ambience === failed) ambience = null; true }
+            ambience = player
+            player.prepareAsync()
+        }.onFailure {
+            player.release()
+            if (ambience === player) ambience = null
         }
     }
 
     fun setVolume(volume: Float) { ambience?.setVolume(volume.coerceIn(0f, 1f), volume.coerceIn(0f, 1f)) }
-    fun stop() { ambience?.run { if (isPlaying) stop(); release() }; ambience = null }
+    fun stop() {
+        ambience?.let { player -> runCatching { player.stop() }; player.release() }
+        ambience = null
+    }
 }

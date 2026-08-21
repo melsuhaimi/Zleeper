@@ -8,4 +8,5 @@ object ZleeperSpacing {
     val medium = 16.dp
     val large = 24.dp
     val extraLarge = 32.dp
+    val huge = 48.dp
 }

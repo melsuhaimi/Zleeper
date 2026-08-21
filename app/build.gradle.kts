@@ -103,6 +103,7 @@ val validateGameAssets by tasks.registering {
             "content/content_manifest.json", "content/progression_rules_v1.json", "content/pet_species.json", "content/pet_forms.json",
             "content/items.json", "content/equipment_effects.json", "content/quests.json", "content/regions.json", "content/scenes.json",
             "content/expedition_nodes.json", "content/loot_tables.json", "content/dialogue/npcs.json",
+            "atlas/hub/hub_moonmoth_hearth.webp",
             "atlas/pet/pet_moonmoth_glimmerling_atlas.webp", "atlas/pet/pet_moonmoth_glimmerling_atlas.json",
             "atlas/pet/pet_moonmoth_lanternwing_atlas.webp", "atlas/pet/pet_moonmoth_lanternwing_atlas.json",
             "atlas/npc/npc_keeper_orin_atlas.webp", "atlas/npc/npc_keeper_orin_atlas.json",
@@ -111,6 +112,22 @@ val validateGameAssets by tasks.registering {
         required.forEach { path ->
             val file = gameRoot.file(path).asFile
             check(file.isFile && file.length() > 0L) { "Missing or empty production asset: $path" }
+        }
+        val minimumBytes = mapOf(
+            Regex("atlas/pet/.+\\.webp") to 1_000_000L,
+            Regex("atlas/hub/.+\\.webp") to 100_000L,
+            Regex("atlas/npc/.+\\.webp") to 30_000L,
+            Regex("atlas/region/.+_bg_(far|mid|near)\\.webp") to 70_000L,
+            Regex("atlas/region/.+_(tiles|props_static|foreground)\\.webp") to 40_000L,
+            Regex("item/icon/.+\\.webp") to 10_000L,
+        )
+        minimumBytes.forEach { (pattern, minimum) ->
+            gameRoot.asFile.walkTopDown().filter { it.isFile }.forEach { file ->
+                val relative = file.relativeTo(gameRoot.asFile).invariantSeparatorsPath
+                if (pattern.matches(relative)) check(file.length() >= minimum) {
+                    "Production asset is below its quality floor ($minimum bytes): $relative"
+                }
+            }
         }
         gameRoot.asFile.walkTopDown().filter { it.isFile }.forEach { file ->
             val relative = file.relativeTo(gameRoot.asFile).invariantSeparatorsPath

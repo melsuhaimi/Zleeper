@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM inventory_instance ORDER BY acquiredAtEpochMs DESC") fun instances(): Flow<List<InventoryInstanceEntity>>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun putStack(value: InventoryStackEntity)
     @Insert(onConflict = OnConflictStrategy.ABORT) suspend fun insertInstances(values: List<InventoryInstanceEntity>)
+    @Update suspend fun updateInstance(value: InventoryInstanceEntity)
     @Insert(onConflict = OnConflictStrategy.ABORT) suspend fun insertTransactions(values: List<InventoryTransactionEntity>)
     @Query("SELECT * FROM inventory_stack WHERE itemId = :itemId") suspend fun stack(itemId: String): InventoryStackEntity?
     @Query("SELECT * FROM inventory_instance WHERE instanceId = :id") suspend fun instance(id: String): InventoryInstanceEntity?
@@ -66,6 +67,7 @@ import kotlinx.coroutines.flow.Flow
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun unlock(value: WorldUnlockEntity): Long
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun discover(value: WorldDiscoveryEntity): Long
     @Query("SELECT * FROM collection_entry ORDER BY category, entryId") fun collection(): Flow<List<CollectionEntryEntity>>
+    @Query("SELECT * FROM collection_entry WHERE entryId = :id") suspend fun collectionEntry(id: String): CollectionEntryEntity?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun putCollection(value: CollectionEntryEntity)
 }
 

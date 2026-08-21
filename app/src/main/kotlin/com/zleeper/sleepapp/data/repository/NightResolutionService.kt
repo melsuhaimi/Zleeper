@@ -8,6 +8,7 @@ import com.zleeper.sleepapp.data.local.database.ExpeditionPathNodeEntity
 import com.zleeper.sleepapp.data.local.database.ExpeditionRewardEntity
 import com.zleeper.sleepapp.data.local.database.InventoryDao
 import com.zleeper.sleepapp.data.local.database.InventoryStackEntity
+import com.zleeper.sleepapp.data.local.database.InventoryInstanceEntity
 import com.zleeper.sleepapp.data.local.database.InventoryTransactionEntity
 import com.zleeper.sleepapp.data.local.database.NightOutcomeEntity
 import com.zleeper.sleepapp.data.local.database.PetDao
@@ -15,6 +16,8 @@ import com.zleeper.sleepapp.data.local.database.PetProgressionEventEntity
 import com.zleeper.sleepapp.data.local.database.QuestDao
 import com.zleeper.sleepapp.data.local.database.SleepDao
 import com.zleeper.sleepapp.data.local.database.ZleeperDatabase
+import com.zleeper.sleepapp.data.local.database.WorldDao
+import com.zleeper.sleepapp.data.local.database.CollectionEntryEntity
 import com.zleeper.sleepapp.domain.expedition.ExpeditionInput
 import com.zleeper.sleepapp.domain.expedition.ExpeditionResolver
 import com.zleeper.sleepapp.domain.progression.ProgressionCalculator
@@ -37,6 +40,7 @@ class NightResolutionService @Inject constructor(
     private val petDao: PetDao,
     private val inventoryDao: InventoryDao,
     private val questDao: QuestDao,
+    private val worldDao: WorldDao,
     private val content: GameContentRepository,
     private val resolver: ExpeditionResolver,
 ) {
@@ -61,9 +65,20 @@ class NightResolutionService @Inject constructor(
         val rewardEntities = result.rewards.map { reward -> ExpeditionRewardEntity(stableId("$expeditionId:${reward.itemId}"), expeditionId, "ITEM", reward.itemId, reward.quantity, now) }
         expeditionDao.insertRewards(rewardEntities)
         result.rewards.forEach { reward ->
-            val current = inventoryDao.stack(reward.itemId)?.quantity ?: 0
-            inventoryDao.putStack(InventoryStackEntity(reward.itemId, current + reward.quantity, now))
-            inventoryDao.insertTransactions(listOf(InventoryTransactionEntity(stableId("ledger:$expeditionId:${reward.itemId}"), reward.itemId, null, reward.quantity, "EXPEDITION_REWARD", expeditionId, now)))
+            val definition = requireNotNull(content.items.firstOrNull { it.id == reward.itemId })
+            if (definition.stackable) {
+                val current = inventoryDao.stack(reward.itemId)?.quantity ?: 0
+                inventoryDao.putStack(InventoryStackEntity(reward.itemId, current + reward.quantity, now))
+                inventoryDao.insertTransactions(listOf(InventoryTransactionEntity(stableId("ledger:$expeditionId:${reward.itemId}"), reward.itemId, null, reward.quantity, "EXPEDITION_REWARD", expeditionId, now)))
+            } else {
+                val instances = (0 until reward.quantity).map { index ->
+                    InventoryInstanceEntity(stableId("instance:$expeditionId:${reward.itemId}:$index"), reward.itemId, now, null)
+                }
+                inventoryDao.insertInstances(instances)
+                inventoryDao.insertTransactions(instances.map { instance -> InventoryTransactionEntity(stableId("ledger:${instance.instanceId}"), reward.itemId, instance.instanceId, 1, "EXPEDITION_REWARD", expeditionId, now) })
+            }
+            val collected = worldDao.collectionEntry(reward.itemId)
+            worldDao.putCollection(CollectionEntryEntity(reward.itemId, definition.category, (collected?.quantity ?: 0) + reward.quantity, collected?.firstDiscoveredAtEpochMs ?: now, now))
         }
         val newXp = pet.totalXp + quality.xp
         var level = pet.level
