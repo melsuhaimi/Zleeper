@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 45
 
     env:
-      GRADLE_FLAGS: "--no-daemon --stacktrace --info"
+      GRADLE_FLAGS: "--no-daemon --stacktrace --console=plain"
 
     steps:
       - name: Check out exact commit
@@ -38,7 +38,60 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Compile
-        run: ./gradlew $GRADLE_FLAGS compileDebugKotlin
+        id: compile
+        shell: bash
+        run: |
+          set +e
+          ./gradlew $GRADLE_FLAGS compileDebugKotlin > gradle-compile.log 2>&1
+          status=$?
+
+          if [ "$status" -ne 0 ]; then
+            {
+              echo "WHAT WENT WRONG"
+              echo "=================="
+              awk '
+                /^\* What went wrong:/ { capture = 1 }
+                /^\* Try:/ { capture = 0 }
+                capture { print }
+              ' gradle-compile.log | head -n 40
+
+              echo
+              echo "CAUSED BY"
+              echo "========="
+              awk '
+                /^[[:space:]]*Caused by:/ {
+                  if (!seen[$0]++) print
+                }
+              ' gradle-compile.log | head -n 15
+            } > gradle-failure-summary.txt
+
+            cat gradle-failure-summary.txt
+
+            {
+              echo "## Gradle compile failure"
+              echo '```text'
+              cat gradle-failure-summary.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          exit "$status"
+
+      - name: Upload compact Gradle failure summary
+        if: ${{ always() && steps.compile.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-failure-summary-${{ github.sha }}
+          path: gradle-failure-summary.txt
+          if-no-files-found: error
+
+      - name: Upload complete Gradle compile log
+        if: ${{ always() && steps.compile.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-compile-log-${{ github.sha }}
+          path: gradle-compile.log
+          if-no-files-found: error
 
       - name: Run unit tests
         run: ./gradlew $GRADLE_FLAGS testDebugUnitTest
