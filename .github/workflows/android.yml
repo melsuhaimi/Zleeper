@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
+    env:
+      GRADLE_FLAGS: "--no-daemon --stacktrace --info"
+
     steps:
       - name: Check out exact commit
         uses: actions/checkout@v4
@@ -30,18 +33,18 @@ jobs:
 
       - name: Install required Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
-        
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Compile
-        run: ./gradlew --no-daemon compileDebugKotlin
+        run: ./gradlew $GRADLE_FLAGS compileDebugKotlin
 
       - name: Run unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+        run: ./gradlew $GRADLE_FLAGS testDebugUnitTest
 
       - name: Run Android lint
-        run: ./gradlew --no-daemon lintDebug
+        run: ./gradlew $GRADLE_FLAGS lintDebug
 
       - name: Verify Compose navigation on Android
         uses: reactivecircus/android-emulator-runner@v2
@@ -49,10 +52,10 @@ jobs:
           api-level: 35
           arch: x86_64
           target: google_apis
-          script: ./gradlew --no-daemon connectedDebugAndroidTest
+          script: ./gradlew $GRADLE_FLAGS connectedDebugAndroidTest
 
       - name: Assemble debug APK
-        run: ./gradlew --no-daemon assembleDebug
+        run: ./gradlew $GRADLE_FLAGS assembleDebug
 
       - name: Validate debug APK
         run: |
