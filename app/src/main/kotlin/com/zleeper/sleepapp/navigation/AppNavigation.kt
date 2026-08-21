@@ -82,7 +82,17 @@ fun AppNavigation(navigationState: NavigationState = remember { NavigationState(
 
 @Composable
 fun TopLevelNavigationBar(navigationState: NavigationState) {
-    NavigationBar { AppRoute.entries.forEach { route -> NavigationBarItem(navigationState.currentRoute == route, { navigationState.select(route) }, { Icon(route.icon(), route.label) }, label = { Text(route.label) }) } }
+    NavigationBar {
+        AppRoute.entries.forEach { route ->
+            NavigationBarItem(
+                selected = navigationState.currentRoute == route,
+                onClick = { navigationState.select(route) },
+                icon = { Icon(route.icon(), route.label) },
+                modifier = Modifier.testTag("nav-${route.name.lowercase()}"),
+                label = { Text(route.label) },
+            )
+        }
+    }
 }
 
 private fun AppRoute.icon(): ImageVector = when (this) { AppRoute.WORLD -> Icons.Outlined.Public; AppRoute.SLEEP -> Icons.Outlined.Bedtime; AppRoute.JOURNAL -> Icons.Outlined.MenuBook; AppRoute.MENU -> Icons.Outlined.Menu }
