@@ -37,7 +37,7 @@ import java.text.DateFormat
 import java.util.Date
 import kotlin.math.abs
 
-private enum class JournalDestination { OVERVIEW, DETAIL, REPLAY }
+private enum class JournalDestination { OVERVIEW, TRENDS, DETAIL, REPLAY }
 
 @Composable
 fun JournalScreen(viewModel: JournalViewModel = hiltViewModel()) {
@@ -57,15 +57,24 @@ fun JournalScreen(viewModel: JournalViewModel = hiltViewModel()) {
             onBack = { destinationName = JournalDestination.OVERVIEW.name; selectedSessionId = null },
             onViewJourney = { destinationName = JournalDestination.REPLAY.name },
         )
+        destination == JournalDestination.TRENDS -> TrendsScreen(
+            state = state,
+            onBack = { destinationName = JournalDestination.OVERVIEW.name },
+        )
         else -> JournalOverview(
             state = state,
             onOpenNight = { id -> selectedSessionId = id; destinationName = JournalDestination.DETAIL.name },
+            onOpenTrends = { destinationName = JournalDestination.TRENDS.name },
         )
     }
 }
 
 @Composable
-private fun JournalOverview(state: JournalUiState, onOpenNight: (String) -> Unit) {
+private fun JournalOverview(
+    state: JournalUiState,
+    onOpenNight: (String) -> Unit,
+    onOpenTrends: () -> Unit,
+) {
     LazyColumn(
         Modifier.fillMaxSize().testTag("journal-overview"),
         contentPadding = PaddingValues(20.dp),
@@ -83,7 +92,15 @@ private fun JournalOverview(state: JournalUiState, onOpenNight: (String) -> Unit
                 }
             }
         } else {
-            state.trends?.let { trends -> item { TrendCard(trends) } }
+            state.trends?.let { trends ->
+                item {
+                    TrendCard(trends)
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedButton(onClick = onOpenTrends, modifier = Modifier.fillMaxWidth().testTag("open-journal-trends")) {
+                        Text("Open trends")
+                    }
+                }
+            }
             if (state.trends == null) {
                 item { Text("${3 - state.nights.size} more finalized ${if (3 - state.nights.size == 1) "night" else "nights"} before the first pattern summary.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
@@ -104,6 +121,52 @@ private fun JournalOverview(state: JournalUiState, onOpenNight: (String) -> Unit
                         if (night.xpGranted != null) Text("${night.xpGranted} XP · Reach ${night.reachBand ?: 0}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrendsScreen(state: JournalUiState, onBack: () -> Unit) {
+    val trends = state.trends
+    LazyColumn(
+        Modifier.fillMaxSize().testTag("journal-trends"),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item { OutlinedButton(onClick = onBack) { Text("Back to journal") } }
+        item {
+            Text("Trends", style = MaterialTheme.typography.headlineMedium)
+            Text("Behavior patterns from finalized estimates. These are not a medical sleep score.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (trends == null) {
+            item {
+                JournalCard {
+                    Text("Not enough finalized nights yet", style = MaterialTheme.typography.titleLarge)
+                    Text("Zleeper waits for at least three nights before describing a pattern so one estimate is not treated as a conclusion.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        } else {
+            item {
+                JournalCard {
+                    Metric("Finalized nights sampled", trends.sampleSize.toString())
+                    Metric("Average estimated duration", formatDuration(trends.averageDurationMinutes))
+                    Metric("Duration range", "${trends.durationRangeMinutes} min")
+                    Metric("Average distance from target", "${trends.averageTimingDistanceMinutes} min")
+                }
+            }
+            item {
+                val description = "Estimated sleep duration across ${trends.sampleSize} recent finalized nights"
+                JournalCard {
+                    Text("Recent estimated duration", style = MaterialTheme.typography.titleLarge)
+                    TrendGraph(trends.durationSeries, description)
+                }
+            }
+            item {
+                Text(
+                    "Use these patterns as descriptive context for your routine. Confidence and corrections remain visible in each nightly detail.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
