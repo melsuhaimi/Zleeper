@@ -9,7 +9,6 @@ import com.zleeper.sleepapp.feature.shell.ZleeperUiState
 import com.zleeper.sleepapp.feature.sleep.SleepScreen
 import com.zleeper.sleepapp.ui.theme.ZleeperTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 
@@ -76,6 +75,5 @@ class SleepScreenTest {
         composeRule.runOnIdle { assertEquals(true, woke) }
         composeRule.onNodeWithText("Cancel accidental start").performClick()
         composeRule.runOnIdle { assertEquals(true, aborted) }
-        assertFalse(false)
     }
 }
