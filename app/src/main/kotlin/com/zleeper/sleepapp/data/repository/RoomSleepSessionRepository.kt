@@ -82,7 +82,9 @@ class RoomSleepSessionRepository @Inject constructor(
         val pending = if (entity.state == SleepSessionState.WAKE_PENDING.name) {
             entity
         } else {
-            entity.copy(state = SleepSessionState.WAKE_PENDING.name, sessionEndEpochMs = wakeAt).also(dao::updateSession)
+            val next = entity.copy(state = SleepSessionState.WAKE_PENDING.name, sessionEndEpochMs = wakeAt)
+            dao.updateSession(next)
+            next
         }
         val signals = dao.signals(sessionId).map {
             SleepSignal(it.id, it.sessionId, SleepSignalType.valueOf(it.type), it.occurredAtEpochMs, it.durationMillis, it.confidencePercent)
