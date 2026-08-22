@@ -31,6 +31,7 @@ data class ZleeperUiState(
     val equipmentInfusions: List<EquipmentInfusionDefinition> = emptyList(),
     val equipmentTraits: List<EquipmentTraitDefinition> = emptyList(),
     val titleDefinitions: List<TitleDefinition> = emptyList(),
+    val progressionRules: ProgressionRulesDefinition? = null,
     val inventoryStacks: List<InventoryStackEntity> = emptyList(),
     val inventoryInstances: List<InventoryInstanceEntity> = emptyList(),
     val equipmentSlots: List<EquipmentSlotEntity> = emptyList(),
