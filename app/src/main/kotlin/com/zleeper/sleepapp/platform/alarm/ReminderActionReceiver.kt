@@ -6,7 +6,6 @@ import android.content.Intent
 import com.zleeper.sleepapp.data.local.preferences.SettingsRepository
 import com.zleeper.sleepapp.data.repository.SleepStartService
 import com.zleeper.sleepapp.platform.notification.ZleeperNotifications
-import com.zleeper.sleepapp.platform.sleep.SleepSignalSource
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -17,7 +16,6 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class ReminderActionReceiver : BroadcastReceiver() {
     @Inject lateinit var sleepStartService: SleepStartService
-    @Inject lateinit var sleepSignalSource: SleepSignalSource
     @Inject lateinit var settings: SettingsRepository
     @Inject lateinit var scheduler: BedtimeReminderScheduler
     @Inject lateinit var notifications: ZleeperNotifications
@@ -35,7 +33,6 @@ class ReminderActionReceiver : BroadcastReceiver() {
                     try {
                         val value = settings.settings.first()
                         sleepStartService.begin(value.targetSleepMinutes, value.targetWakeMinutes, windDownCompleted = false)
-                        if (sleepSignalSource.isAvailable()) sleepSignalSource.subscribe()
                         notifications.cancelBedtimeReminder()
                     } finally { pending.finish() }
                 }
