@@ -4,11 +4,15 @@ import androidx.room.Room
 import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.zleeper.sleepapp.core.time.AppClock
 import com.zleeper.sleepapp.data.local.database.ExpeditionEntity
 import com.zleeper.sleepapp.data.local.database.InventoryStackEntity
 import com.zleeper.sleepapp.data.local.database.SleepSessionEntity
 import com.zleeper.sleepapp.data.local.database.SleepSignalEntity
 import com.zleeper.sleepapp.data.local.database.ZleeperDatabase
+import com.zleeper.sleepapp.data.repository.RoomSleepSessionRepository
+import com.zleeper.sleepapp.domain.sleep.SleepResolver
+import com.zleeper.sleepapp.domain.sleep.SleepSessionState
 import com.zleeper.sleepapp.domain.sleep.SleepSignalType
 import com.zleeper.sleepapp.platform.sleep.SleepSignalIdentity
 import kotlinx.coroutines.runBlocking
@@ -35,6 +39,38 @@ class RoomPersistenceTest {
     @After
     fun tearDown() {
         database.close()
+    }
+
+    @Test
+    fun beginPersistsArmedStateBeforeTrackingPromotion() = runBlocking {
+        val repository = repositoryAt(1_000L)
+
+        val session = repository.begin(22 * 60, 7 * 60, windDownCompleted = false)
+
+        assertEquals(SleepSessionState.ARMED, session.state)
+        assertEquals(SleepSessionState.ARMED.name, database.sleepDao().session(session.id)?.state)
+        assertEquals(1, database.sleepDao().signals(session.id).count { it.type == SleepSignalType.MANUAL_START.name })
+    }
+
+    @Test
+    fun wakePendingRetryReusesPersistedWakeAnchor() = runBlocking {
+        val original = trackingSession("night")
+        database.sleepDao().insertSession(original)
+        database.sleepDao().updateSession(
+            original.copy(
+                state = SleepSessionState.WAKE_PENDING.name,
+                sessionEndEpochMs = 2_000L,
+            ),
+        )
+        val repository = repositoryAt(3_000L)
+
+        val resolved = repository.requestWake("night", atEpochMs = 9_000L)
+
+        assertEquals(2_000L, resolved.sessionEndEpochMs)
+        val persisted = database.sleepDao().session("night")!!
+        assertEquals(SleepSessionState.REVIEW_PENDING.name, persisted.state)
+        assertEquals(2_000L, persisted.sessionEndEpochMs)
+        assertEquals(1, database.sleepDao().signals("night").count { it.type == SleepSignalType.MANUAL_WAKE.name })
     }
 
     @Test
@@ -79,9 +115,15 @@ class RoomPersistenceTest {
         assertNull(database.inventoryDao().stack("item_material_test"))
     }
 
+    private fun repositoryAt(now: Long) = RoomSleepSessionRepository(
+        database.sleepDao(),
+        SleepResolver(),
+        AppClock { now },
+    )
+
     private fun trackingSession(id: String) = SleepSessionEntity(
         id = id,
-        state = "TRACKING",
+        state = SleepSessionState.TRACKING.name,
         sessionStartEpochMs = 1_000L,
         sessionEndEpochMs = null,
         estimatedSleepStartEpochMs = null,
