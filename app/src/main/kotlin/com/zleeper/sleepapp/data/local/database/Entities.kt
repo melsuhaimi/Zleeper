@@ -1,5 +1,6 @@
 package com.zleeper.sleepapp.data.local.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -38,8 +39,8 @@ data class PetEntity(
     val resilienceAffinity: Int,
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
-    val dreamSparksAvailable: Int = 0,
-    val dreamSparksEarned: Int = 0,
+    @ColumnInfo(defaultValue = "0") val dreamSparksAvailable: Int = 0,
+    @ColumnInfo(defaultValue = "0") val dreamSparksEarned: Int = 0,
 )
 
 @Entity(tableName = "pet_progression_event", indices = [Index("petId"), Index("occurredAtEpochMs")])
@@ -69,12 +70,12 @@ data class InventoryInstanceEntity(
     val itemId: String,
     val acquiredAtEpochMs: Long,
     val equippedSlot: String?,
-    val tier: Int = 1,
-    val upgradeLevel: Int = 0,
-    val quality: Int = 75,
+    @ColumnInfo(defaultValue = "1") val tier: Int = 1,
+    @ColumnInfo(defaultValue = "0") val upgradeLevel: Int = 0,
+    @ColumnInfo(defaultValue = "75") val quality: Int = 75,
     val traitId: String? = null,
     val infusionId: String? = null,
-    val progressionSeed: Long = 0L,
+    @ColumnInfo(defaultValue = "0") val progressionSeed: Long = 0L,
 )
 
 @Entity(tableName = "inventory_transaction", indices = [Index("itemId"), Index("occurredAtEpochMs")])
@@ -103,7 +104,7 @@ data class QuestProgressEntity(
     val acceptedAtEpochMs: Long,
     val completedAtEpochMs: Long?,
     val claimedAtEpochMs: Long?,
-    val tracked: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val tracked: Boolean = false,
     val abandonedAtEpochMs: Long? = null,
 )
 
@@ -138,7 +139,7 @@ data class CollectionEntryEntity(@PrimaryKey val entryId: String, val category: 
 data class PlayerTitleEntity(
     @PrimaryKey val titleId: String,
     val unlockedAtEpochMs: Long,
-    val equipped: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val equipped: Boolean = false,
     val updatedAtEpochMs: Long = unlockedAtEpochMs,
 )
 
