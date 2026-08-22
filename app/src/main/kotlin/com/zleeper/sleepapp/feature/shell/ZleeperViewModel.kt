@@ -159,10 +159,6 @@ class ZleeperViewModel @Inject constructor(
 
     fun renamePet(name: String) = launchOperation { petLifecycleService.rename(name) }
 
-    fun markPermissionExplanations() = launchOperation {
-        settingsRepository.markActivityPermissionExplained()
-        settingsRepository.markNotificationPermissionExplained()
-    }
     fun markActivityPermissionExplained() = launchOperation { settingsRepository.markActivityPermissionExplained() }
     fun markNotificationPermissionExplained() = launchOperation { settingsRepository.markNotificationPermissionExplained() }
 
