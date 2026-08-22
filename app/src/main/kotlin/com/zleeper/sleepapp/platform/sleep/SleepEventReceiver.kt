@@ -22,7 +22,7 @@ class SleepEventReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val session = sleepDao.activeSession() ?: return@launch
+                val session = sleepDao.trackingSession() ?: return@launch
                 val receivedAt = System.currentTimeMillis()
                 val classify = if (SleepClassifyEvent.hasEvents(intent)) SleepClassifyEvent.extractEvents(intent).orEmpty().map {
                     SleepSignalEntity(
