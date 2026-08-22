@@ -52,9 +52,7 @@ class SettingsRepository @Inject constructor(private val store: DataStore<Prefer
             musicVolume = (values[Keys.MUSIC_VOLUME] ?: values[Keys.LEGACY_VOLUME] ?: 0.70f).coerceIn(0f, 1f),
             ambienceVolume = (values[Keys.AMBIENCE_VOLUME] ?: values[Keys.LEGACY_VOLUME] ?: 0.75f).coerceIn(0f, 1f),
             sfxVolume = (values[Keys.SFX_VOLUME] ?: values[Keys.LEGACY_VOLUME] ?: 0.80f).coerceIn(0f, 1f),
-            motion = values[Keys.MOTION]?.let { runCatching { ThemePreference.valueOf(it) }.getOrNull() }?.let { null }
-                ?: values[Keys.MOTION]?.let { runCatching { MotionPreference.valueOf(it) }.getOrNull() }
-                ?: MotionPreference.FULL,
+            motion = values[Keys.MOTION]?.let { runCatching { MotionPreference.valueOf(it) }.getOrNull() } ?: MotionPreference.FULL,
             targetSleepMinutes = values[Keys.SLEEP_TARGET] ?: 22 * 60 + 30,
             targetWakeMinutes = values[Keys.WAKE_TARGET] ?: 7 * 60,
             alarmEnabled = values[Keys.ALARM] ?: false,
