@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -33,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,16 +59,13 @@ fun WorldHubScreen(
     onOpenScene: (String) -> Unit,
 ) {
     val pet = state.pet ?: return
-    val form = state.forms.firstOrNull { it.id == pet.formId }
-    val formKey = form?.assetKey ?: return
+    val form = state.forms.firstOrNull { it.id == pet.formId } ?: return
+    val progressionRules = state.progressionRules ?: return
     val memories = state.hearth?.memories ?: 0
     val orderedStages = state.hearthStages.sortedBy { it.order }
     val stage = orderedStages.lastOrNull { memories >= it.requiredMemories } ?: orderedStages.firstOrNull()
     val nextStage = orderedStages.firstOrNull { it.requiredMemories > memories }
-    val curve = state.run {
-        val rules = contentLevelCurve()
-        LevelCurve(rules.base, rules.linear, rules.exponent)
-    }
+    val curve = progressionRules.levelCurve.let { LevelCurve(it.base, it.linear, it.exponent) }
     val xpIntoLevel = ProgressionCalculator.xpIntoLevel(pet.totalXp, pet.level, curve)
     val xpNeeded = ProgressionCalculator.xpToNextLevel(pet.level, curve)
 
@@ -82,7 +79,7 @@ fun WorldHubScreen(
                 LivingHearth(
                     state = state,
                     stage = stage,
-                    formKey = formKey,
+                    formKey = form.assetKey,
                     xpIntoLevel = xpIntoLevel,
                     xpNeeded = xpNeeded,
                 )
@@ -266,7 +263,10 @@ private fun HearthProgressCard(
             Text("HEARTH", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
             Text("Stage ${stage?.order ?: 1} · ${stage?.name ?: "Hearth"}", style = MaterialTheme.typography.titleLarge)
             stage?.features?.takeIf { it.isNotEmpty() }?.let { features ->
-                Text(features.joinToString(" · ") { it.replace('_', ' ').replaceFirstChar(Char::uppercase) }, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    features.joinToString(" · ") { feature -> feature.replace('_', ' ').replaceFirstChar { it.uppercase() } },
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             if (nextStage == null) {
                 Text("All current Hearth restorations are visible.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -281,9 +281,3 @@ private fun HearthProgressCard(
         }
     }
 }
-
-private fun ZleeperUiState.contentLevelCurve() = com.zleeper.sleepapp.data.content.LevelCurveDefinition(
-    base = 120,
-    linear = 70,
-    exponent = 1.32,
-)
