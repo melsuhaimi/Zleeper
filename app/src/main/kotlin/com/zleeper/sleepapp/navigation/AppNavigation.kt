@@ -34,6 +34,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.zleeper.sleepapp.data.local.preferences.MotionPreference
 import com.zleeper.sleepapp.feature.journal.JournalScreen as RefinedJournalScreen
+import com.zleeper.sleepapp.feature.morning.MorningResolutionPendingScreen
+import com.zleeper.sleepapp.feature.morning.MorningRevealScreen
+import com.zleeper.sleepapp.feature.morning.MorningReviewScreen
 import com.zleeper.sleepapp.feature.onboarding.OnboardingFlow as RefinedOnboardingFlow
 import com.zleeper.sleepapp.feature.shell.ZleeperViewModel
 import com.zleeper.sleepapp.feature.sleep.SleepScreen as RefinedSleepScreen
@@ -51,19 +54,22 @@ fun AppNavigation(
         return
     }
     if (state.pendingReview != null) {
-        MorningReview(state, viewModel)
+        MorningReviewScreen(
+            state = state,
+            onFinalize = { start, end, mood, note -> viewModel.finalizeMorning(start, end, mood, note) },
+        )
         return
     }
     if (state.morningResult != null) {
-        MorningReveal(state, viewModel)
+        MorningRevealScreen(state = state, onReturnToHearth = viewModel::dismissMorningReveal)
         return
     }
     state.pendingResolution?.let { session ->
-        MorningResolutionPending(session.id, state.operationError, viewModel::resumePendingResolution)
+        MorningResolutionPendingScreen(session.id, state.operationError, viewModel::resumePendingResolution)
         return
     }
     state.pendingReveal?.let { expedition ->
-        MorningResolutionPending(expedition.id, state.operationError, viewModel::resumePendingResolution)
+        MorningResolutionPendingScreen(expedition.sleepSessionId, state.operationError, viewModel::resumePendingResolution)
         return
     }
     if (state.trackingSession != null) {
