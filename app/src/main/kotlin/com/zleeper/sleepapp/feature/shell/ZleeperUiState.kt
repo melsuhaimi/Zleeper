@@ -25,6 +25,7 @@ data class ZleeperUiState(
     val items: List<ItemDefinition> = emptyList(),
     val quests: List<QuestDefinition> = emptyList(),
     val dialogue: Map<String, List<DialogueLineDefinition>> = emptyMap(),
+    val equipmentEffects: List<EquipmentEffectDefinition> = emptyList(),
     val specializations: List<SpecializationNodeDefinition> = emptyList(),
     val hearthStages: List<HearthStageDefinition> = emptyList(),
     val craftingRecipes: List<CraftingRecipeDefinition> = emptyList(),
