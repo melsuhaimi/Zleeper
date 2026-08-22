@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -129,8 +128,8 @@ fun MenuRoute(state: ZleeperUiState, viewModel: ZleeperViewModel) {
                 )
                 MenuDestination.PERMISSIONS -> PermissionsScreen(
                     state = state,
-                    onActivityPermissionExplained = viewModel::markActivityPermissionExplained,
-                    onNotificationPermissionExplained = viewModel::markNotificationPermissionExplained,
+                    onActivityPermissionExplained = { viewModel.markActivityPermissionExplained() },
+                    onNotificationPermissionExplained = { viewModel.markNotificationPermissionExplained() },
                 )
                 MenuDestination.DATA -> DataManagementScreen(
                     state = state,
