@@ -8,6 +8,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.zleeper.sleepapp.data.local.database.SleepDao
 import com.zleeper.sleepapp.data.local.preferences.SettingsRepository
+import com.zleeper.sleepapp.domain.sleep.SleepSessionState
 import com.zleeper.sleepapp.platform.alarm.BedtimeReminderScheduler
 import com.zleeper.sleepapp.platform.alarm.ScheduleTimes
 import com.zleeper.sleepapp.platform.alarm.WakeAlarmScheduler
@@ -55,9 +56,18 @@ class BootReceiver : BroadcastReceiver() {
                 if (value.bedtimeReminderEnabled) {
                     bedtimeReminderScheduler.schedule(ScheduleTimes.nextOccurrence(now, value.targetSleepMinutes))
                 }
-                if (sleepDao.trackingSession() != null && sleepSignalSource.isAvailable()) {
-                    sleepSignalSource.subscribe()
+
+                val signalSession = sleepDao.trackingSession()
+                if (signalSession != null && sleepSignalSource.isAvailable()) {
+                    val subscription = sleepSignalSource.subscribe()
+                    if (subscription.isSuccess && signalSession.state == SleepSessionState.ARMED.name) {
+                        val current = sleepDao.session(signalSession.id)
+                        if (current?.state == SleepSessionState.ARMED.name) {
+                            sleepDao.updateSession(current.copy(state = SleepSessionState.TRACKING.name))
+                        }
+                    }
                 }
+
                 sleepDao.pendingRewardResolution().forEach { session -> rewardResolutionScheduler.enqueue(session.id) }
             } finally {
                 pending.finish()
