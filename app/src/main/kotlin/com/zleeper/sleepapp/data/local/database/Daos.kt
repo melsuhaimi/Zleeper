@@ -61,6 +61,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao interface InventoryDao {
     @Query("SELECT * FROM inventory_stack ORDER BY itemId") fun stacks(): Flow<List<InventoryStackEntity>>
     @Query("SELECT * FROM inventory_instance ORDER BY acquiredAtEpochMs DESC") fun instances(): Flow<List<InventoryInstanceEntity>>
+    @Query("SELECT * FROM inventory_transaction ORDER BY occurredAtEpochMs DESC, id DESC") fun transactions(): Flow<List<InventoryTransactionEntity>>
     @Query("SELECT * FROM inventory_instance ORDER BY acquiredAtEpochMs DESC") suspend fun instancesOnce(): List<InventoryInstanceEntity>
     @Query("SELECT * FROM inventory_instance WHERE itemId = :itemId ORDER BY acquiredAtEpochMs DESC") suspend fun instancesByItem(itemId: String): List<InventoryInstanceEntity>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun putStack(value: InventoryStackEntity)
