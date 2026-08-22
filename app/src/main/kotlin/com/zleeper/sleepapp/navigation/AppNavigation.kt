@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.zleeper.sleepapp.data.local.preferences.MotionPreference
 import com.zleeper.sleepapp.feature.journal.JournalScreen as RefinedJournalScreen
+import com.zleeper.sleepapp.feature.onboarding.OnboardingFlow as RefinedOnboardingFlow
 import com.zleeper.sleepapp.feature.shell.ZleeperViewModel
 import com.zleeper.sleepapp.feature.sleep.SleepScreen as RefinedSleepScreen
 import com.zleeper.sleepapp.feature.world.WorldHubScreen
@@ -46,7 +47,7 @@ fun AppNavigation(
 ) {
     val state by viewModel.state.collectAsState()
     if (!state.settings.onboardingComplete || state.pet == null) {
-        OnboardingFlow(state, viewModel)
+        RefinedOnboardingFlow(state, viewModel)
         return
     }
     if (state.pendingReview != null) {
@@ -68,7 +69,7 @@ fun AppNavigation(
     if (state.trackingSession != null) {
         RefinedSleepScreen(
             state = state,
-            onSavePlan = viewModel::saveSleepPlan,
+            onSavePlan = { sleep, wake -> viewModel.saveSleepPlan(sleep, wake) },
             onBeginSleep = viewModel::beginSleep,
             onWake = viewModel::wake,
             onAbort = viewModel::abortSleep,
@@ -125,7 +126,7 @@ fun AppNavigation(
                     AppRoute.WORLD -> WorldHubScreen(state) { worldSceneId = it }
                     AppRoute.SLEEP -> RefinedSleepScreen(
                         state = state,
-                        onSavePlan = viewModel::saveSleepPlan,
+                        onSavePlan = { sleep, wake -> viewModel.saveSleepPlan(sleep, wake) },
                         onBeginSleep = viewModel::beginSleep,
                         onWake = viewModel::wake,
                         onAbort = viewModel::abortSleep,
