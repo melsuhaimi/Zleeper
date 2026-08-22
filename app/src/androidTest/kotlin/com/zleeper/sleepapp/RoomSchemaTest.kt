@@ -10,7 +10,8 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class RoomSchemaTest {
-    @Test fun versionTwoCreatesAllSourceOfTruthTables() {
+    @Test
+    fun versionTwoCreatesAllSourceOfTruthTables() {
         val database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             ZleeperDatabase::class.java,
@@ -21,9 +22,10 @@ class RoomSchemaTest {
                 "sleep_session", "sleep_signal", "night_outcome", "expedition", "expedition_path_node", "expedition_reward",
                 "pet", "pet_progression_event", "inventory_stack", "inventory_instance", "inventory_transaction", "equipment_slot",
                 "equipment_progression_event", "quest_progress", "quest_objective_progress", "world_unlock", "world_discovery",
-                "collection_entry", "morning_note", "pet_specialization", "pet_memory", "hearth_progress", "hearth_progression_event",
-                "title_unlock", "scene_completion",
+                "collection_entry", "morning_note", "pet_specialization", "pet_memory", "hearth_progress", "hearth_progress_event",
+                "player_title", "world_scene_completion",
             )
+            assertEquals(25, expected.size)
             assertEquals(expected, names.intersect(expected))
         }
         database.close()
