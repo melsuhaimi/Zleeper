@@ -1,0 +1,7 @@
+[
+{"id":"recipe_acorn_cap","output_item_id":"item_equipment_acorn_cap","required_level":2,"ingredients":[{"item_id":"item_material_softmoss","quantity":3},{"item_id":"item_material_dewdrop","quantity":2}],"compatible_infusions":["infusion_dew","infusion_moss"]},
+{"id":"recipe_hush_bell","output_item_id":"item_equipment_bell_charm","required_level":4,"ingredients":[{"item_id":"item_material_starthread","quantity":3},{"item_id":"item_material_dewdrop","quantity":3}],"compatible_infusions":["infusion_dew","infusion_star_thread"]},
+{"id":"recipe_wayleaf_pack","output_item_id":"item_equipment_leaf_pack","required_level":6,"ingredients":[{"item_id":"item_material_softmoss","quantity":4},{"item_id":"item_material_bramblewood","quantity":3}],"compatible_infusions":["infusion_moss","infusion_bramblewood"]},
+{"id":"recipe_mushroom_crown","output_item_id":"item_equipment_mushroom_crown","required_level":10,"ingredients":[{"item_id":"item_material_softmoss","quantity":5},{"item_id":"item_material_cloudfluff","quantity":2}],"compatible_infusions":["infusion_moss","infusion_star_thread"]},
+{"id":"recipe_dawn_compass","output_item_id":"item_relic_dawn_compass","required_level":20,"ingredients":[{"item_id":"item_material_starthread","quantity":6},{"item_id":"item_material_cloudfluff","quantity":4},{"item_id":"item_material_bramblewood","quantity":4}],"compatible_infusions":["infusion_star_thread","infusion_bramblewood"]}
+]

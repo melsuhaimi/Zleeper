@@ -4,8 +4,18 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [SleepSessionEntity::class, SleepSignalEntity::class, NightOutcomeEntity::class, ExpeditionEntity::class, ExpeditionPathNodeEntity::class, ExpeditionRewardEntity::class, PetEntity::class, PetProgressionEventEntity::class, InventoryStackEntity::class, InventoryInstanceEntity::class, InventoryTransactionEntity::class, EquipmentSlotEntity::class, QuestProgressEntity::class, QuestObjectiveProgressEntity::class, WorldUnlockEntity::class, WorldDiscoveryEntity::class, CollectionEntryEntity::class, MorningNoteEntity::class],
-    version = 1,
+    entities = [
+        SleepSessionEntity::class, SleepSignalEntity::class, NightOutcomeEntity::class,
+        ExpeditionEntity::class, ExpeditionPathNodeEntity::class, ExpeditionRewardEntity::class,
+        PetEntity::class, PetProgressionEventEntity::class, PetSpecializationEntity::class, PetMemoryEntity::class,
+        InventoryStackEntity::class, InventoryInstanceEntity::class, InventoryTransactionEntity::class,
+        EquipmentSlotEntity::class, EquipmentProgressionEventEntity::class,
+        QuestProgressEntity::class, QuestObjectiveProgressEntity::class,
+        WorldUnlockEntity::class, WorldDiscoveryEntity::class, WorldSceneCompletionEntity::class,
+        HearthProgressEntity::class, HearthProgressionEventEntity::class,
+        CollectionEntryEntity::class, PlayerTitleEntity::class, MorningNoteEntity::class,
+    ],
+    version = 2,
     exportSchema = true,
 )
 abstract class ZleeperDatabase : RoomDatabase() {

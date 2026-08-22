@@ -1,0 +1,7 @@
+[
+{"id":"trait_lantern_whisper","name":"Lantern Whisper","effect":"interaction_reveal","amount":1},
+{"id":"trait_gatherers_grace","name":"Gatherer's Grace","effect":"forage_bonus","amount":1},
+{"id":"trait_wayfarer_fold","name":"Wayfarer Fold","effect":"material_capacity","amount":1},
+{"id":"trait_far_horizon","name":"Far Horizon","effect":"expedition_budget","amount":2},
+{"id":"trait_echo_sense","name":"Echo Sense","effect":"focus_route_bonus","amount":1}
+]

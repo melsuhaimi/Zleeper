@@ -1,0 +1,7 @@
+[
+{"id":"hearth_moonlit_nest","order":1,"name":"Moonlit Nest","required_memories":0,"features":["nest","single_lantern"]},
+{"id":"hearth_lantern_shelter","order":2,"name":"Lantern Shelter","required_memories":5,"features":["relic_display","fireflies"]},
+{"id":"hearth_wayfarers_hearth","order":3,"name":"Wayfarer's Hearth","required_memories":15,"features":["workbench","npc_visitors"]},
+{"id":"hearth_moon_garden","order":4,"name":"Moon Garden","required_memories":30,"features":["garden","animated_flora"]},
+{"id":"hearth_dreamers_haven","order":5,"name":"Dreamer's Haven","required_memories":60,"features":["expedition_table","rare_ambience","relic_gallery"]}
+]
