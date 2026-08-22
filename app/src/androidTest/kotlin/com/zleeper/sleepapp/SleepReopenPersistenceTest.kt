@@ -24,14 +24,17 @@ class SleepReopenPersistenceTest {
             first.sleepDao().insertSession(session("tracking", SleepSessionState.TRACKING, endAt = null, seed = 9_876_543L))
         }
 
-        open(TEST_TRACKING_DB).use { reopened ->
+        val reopened = open(TEST_TRACKING_DB)
+        try {
             val restored = reopened.sleepDao().activeSession()
             assertNotNull(restored)
             assertEquals(SleepSessionState.TRACKING.name, restored!!.state)
             assertEquals(9_876_543L, restored.expeditionSeed)
             assertEquals(1_000L, restored.sessionStartEpochMs)
+        } finally {
+            reopened.close()
+            context.deleteDatabase(TEST_TRACKING_DB)
         }
-        context.deleteDatabase(TEST_TRACKING_DB)
     }
 
     @Test
@@ -40,19 +43,27 @@ class SleepReopenPersistenceTest {
             first.sleepDao().insertSession(session("wake", SleepSessionState.WAKE_PENDING, endAt = 8_000L, seed = 55L))
         }
 
-        open(TEST_WAKE_DB).use { reopened ->
+        val reopened = open(TEST_WAKE_DB)
+        try {
             val restored = reopened.sleepDao().activeSession()
             assertNotNull(restored)
             assertEquals(SleepSessionState.WAKE_PENDING.name, restored!!.state)
             assertEquals(8_000L, restored.sessionEndEpochMs)
             assertEquals(55L, restored.expeditionSeed)
+        } finally {
+            reopened.close()
+            context.deleteDatabase(TEST_WAKE_DB)
         }
-        context.deleteDatabase(TEST_WAKE_DB)
     }
 
     private suspend fun withFreshDatabase(name: String, block: suspend (ZleeperDatabase) -> Unit) {
         context.deleteDatabase(name)
-        open(name).use { database -> block(database) }
+        val database = open(name)
+        try {
+            block(database)
+        } finally {
+            database.close()
+        }
     }
 
     private fun open(name: String): ZleeperDatabase = Room.databaseBuilder(context, ZleeperDatabase::class.java, name)
