@@ -1,0 +1,5 @@
+app/src/main/kotlin/com/zleeper/sleepapp/feature/journal/JournalModels.kt
+app/src/main/kotlin/com/zleeper/sleepapp/feature/journal/JournalRepository.kt
+app/src/main/kotlin/com/zleeper/sleepapp/feature/journal/JournalScreen.kt
+app/src/main/kotlin/com/zleeper/sleepapp/feature/journal/JournalViewModel.kt
+app/src/test/kotlin/com/zleeper/sleepapp/feature/journal/JournalTrendsTest.kt
