@@ -61,12 +61,6 @@ class ZleeperViewModel @Inject constructor(
         saveSleepPlanInternal(sleepMinutes, wakeMinutes)
     }
 
-    fun saveSleepPlan(sleepMinutes: Int, wakeMinutes: Int, displayedDurationMinutes: Int) = launchOperation {
-        val derived = SleepSchedule.plannedDurationMinutes(sleepMinutes, wakeMinutes)
-        require(displayedDurationMinutes == derived) { "Sleep duration is derived from bedtime and wake time" }
-        saveSleepPlanInternal(sleepMinutes, wakeMinutes)
-    }
-
     fun beginSleep(windDownCompleted: Boolean) = launchOperation {
         val settings = state.value.settings
         sleepStartService.begin(settings.targetSleepMinutes, settings.targetWakeMinutes, windDownCompleted)
@@ -215,14 +209,6 @@ class ZleeperViewModel @Inject constructor(
         gameAudioController.setAmbienceVolume(value)
     }
     fun setSfxVolume(value: Float) = launchOperation { settingsRepository.setSfxVolume(value) }
-
-    fun setVolume(value: Float) = launchOperation {
-        settingsRepository.setMusicVolume(value)
-        settingsRepository.setAmbienceVolume(value)
-        settingsRepository.setSfxVolume(value)
-        gameAudioController.setMusicVolume(value)
-        gameAudioController.setAmbienceVolume(value)
-    }
 
     fun playSceneAudio(regionId: String) {
         val region = content.regions.firstOrNull { it.id == regionId } ?: return
