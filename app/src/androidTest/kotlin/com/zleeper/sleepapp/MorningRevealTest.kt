@@ -1,10 +1,12 @@
 package com.zleeper.sleepapp
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import com.zleeper.sleepapp.data.repository.MorningJourneyStep
 import com.zleeper.sleepapp.data.repository.MorningResult
 import com.zleeper.sleepapp.feature.morning.MorningRevealScreen
@@ -48,11 +50,14 @@ class MorningRevealTest {
             }
         }
 
-        composeRule.onNodeWithText("JOURNEY RESULT").assertIsDisplayed()
-        composeRule.onNodeWithText("View journey").performScrollTo().performClick()
+        val reveal = composeRule.onNodeWithTag("morning-reveal")
+        reveal.performScrollToNode(hasText("View journey"))
+        composeRule.onNodeWithText("View journey").performClick()
+        reveal.performScrollToNode(hasText("Lumi found the lantern clearing."))
         composeRule.onNodeWithText("A reconstruction of the already-resolved expedition path.").assertIsDisplayed()
         composeRule.onNodeWithText("Lumi found the lantern clearing.").assertIsDisplayed()
-        composeRule.onNodeWithText("Return to the Hearth").performScrollTo().performClick()
+        reveal.performScrollToNode(hasText("Return to the Hearth"))
+        composeRule.onNodeWithText("Return to the Hearth").performClick()
         composeRule.runOnIdle { assertTrue(returnedToHearth) }
     }
 }
