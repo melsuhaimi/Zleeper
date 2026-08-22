@@ -58,7 +58,7 @@ data class ZleeperUiState(
     val activeSession: SleepSessionEntity?
         get() = sessions.firstOrNull { it.state !in setOf("FINALIZED", "EXPEDITION_RESOLVED", "ABORTED") }
     val trackingSession: SleepSessionEntity?
-        get() = sessions.firstOrNull { it.state == "TRACKING" || it.state == "ARMED" }
+        get() = sessions.firstOrNull { it.state in setOf("ARMED", "TRACKING", "WAKE_PENDING") }
     val pendingReview: SleepSessionEntity?
         get() = sessions.firstOrNull { it.state == "REVIEW_PENDING" }
     val pendingResolution: SleepSessionEntity?
