@@ -8,6 +8,7 @@ import com.zleeper.sleepapp.core.time.AppClock
 import com.zleeper.sleepapp.core.time.SystemAppClock
 import com.zleeper.sleepapp.data.local.database.ExpeditionDao
 import com.zleeper.sleepapp.data.local.database.InventoryDao
+import com.zleeper.sleepapp.data.local.database.MIGRATION_1_2
 import com.zleeper.sleepapp.data.local.database.MorningDao
 import com.zleeper.sleepapp.data.local.database.PetDao
 import com.zleeper.sleepapp.data.local.database.QuestDao
@@ -28,21 +29,17 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DataModule {
     @Provides @Singleton fun provideClock(): AppClock = SystemAppClock()
-    @Provides
-    @Singleton
-    fun provideDatabase(
-        @ApplicationContext context: Context,
-    ): ZleeperDatabase = Room.databaseBuilder(
-        context,
-        ZleeperDatabase::class.java,
-        "zleeper.db",
-    ).build()
 
     @Provides
     @Singleton
-    fun providePreferences(
-        @ApplicationContext context: Context,
-    ): DataStore<Preferences> = context.zleeperPreferences
+    fun provideDatabase(@ApplicationContext context: Context): ZleeperDatabase =
+        Room.databaseBuilder(context, ZleeperDatabase::class.java, "zleeper.db")
+            .addMigrations(MIGRATION_1_2)
+            .build()
+
+    @Provides
+    @Singleton
+    fun providePreferences(@ApplicationContext context: Context): DataStore<Preferences> = context.zleeperPreferences
 
     @Provides fun provideSleepDao(database: ZleeperDatabase): SleepDao = database.sleepDao()
     @Provides fun provideExpeditionDao(database: ZleeperDatabase): ExpeditionDao = database.expeditionDao()
