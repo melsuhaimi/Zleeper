@@ -5,7 +5,14 @@ enum class SleepSignalType { CLASSIFY, SEGMENT, MANUAL_START, MANUAL_WAKE, ALARM
 enum class SleepConfidence { HIGH, MEDIUM, LOW }
 enum class SleepResolutionMethod { SEGMENT_AND_CLASSIFY, CLASSIFY, SEGMENT, MANUAL }
 
-data class SleepSignal(val id: String, val sessionId: String, val type: SleepSignalType, val occurredAtEpochMs: Long, val durationMillis: Long? = null, val confidencePercent: Int? = null)
+data class SleepSignal(
+    val id: String,
+    val sessionId: String,
+    val type: SleepSignalType,
+    val occurredAtEpochMs: Long,
+    val durationMillis: Long? = null,
+    val confidencePercent: Int? = null,
+)
 
 data class SleepSession(
     val id: String,
