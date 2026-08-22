@@ -3,13 +3,9 @@ package com.zleeper.sleepapp.feature.shell
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.withTransaction
 import com.zleeper.sleepapp.data.content.*
-import com.zleeper.sleepapp.data.local.database.*
 import com.zleeper.sleepapp.data.local.preferences.*
 import com.zleeper.sleepapp.data.repository.*
-import com.zleeper.sleepapp.domain.equipment.GameEffects
-import com.zleeper.sleepapp.domain.inventory.EquipmentSlot
 import com.zleeper.sleepapp.domain.sleep.*
 import com.zleeper.sleepapp.platform.alarm.*
 import com.zleeper.sleepapp.platform.audio.GameAudioController
@@ -17,21 +13,15 @@ import com.zleeper.sleepapp.platform.data.DataControlRepository
 import com.zleeper.sleepapp.platform.sleep.SleepSignalSource
 import com.zleeper.sleepapp.platform.work.RewardResolutionScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 @HiltViewModel
 class ZleeperViewModel @Inject constructor(
-    private val database: ZleeperDatabase,
     private val settingsRepository: SettingsRepository,
     private val sleepRepository: SleepSessionRepository,
     private val sleepStartService: SleepStartService,
-    private val petDao: PetDao,
-    private val morningDao: MorningDao,
-    private val inventoryDao: InventoryDao,
-    private val worldDao: WorldDao,
     private val content: GameContentRepository,
     private val sleepSignalSource: SleepSignalSource,
     private val nightResolutionService: NightResolutionService,
@@ -47,7 +37,8 @@ class ZleeperViewModel @Inject constructor(
     private val evolutionService: EvolutionService,
     private val titleService: TitleService,
     private val worldInteractionService: WorldInteractionService,
-    private val worldProgressService: WorldProgressService,
+    private val petLifecycleService: PetLifecycleService,
+    private val morningReviewService: MorningReviewService,
     private val stateStore: ZleeperStateStore,
 ) : ViewModel() {
     private val operationError = MutableStateFlow<String?>(null)
@@ -62,41 +53,7 @@ class ZleeperViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ZleeperUiState())
 
     fun createPet(name: String) = launchOperation {
-        val clean = name.trim().take(24)
-        require(clean.length >= 2) { "Pet name must contain at least two characters" }
-        val species = requireNotNull(content.species.firstOrNull()) { "Pet species content is unavailable" }
-        val form = requireNotNull(content.forms.firstOrNull { it.id == species.initialFormId }) { "Initial pet form is unavailable" }
-        val now = System.currentTimeMillis()
-        val created = database.withTransaction {
-            if (petDao.pet() != null) return@withTransaction false
-            petDao.insert(
-                PetEntity(
-                    instanceId = UUID.randomUUID().toString(),
-                    speciesId = species.id,
-                    displayName = clean,
-                    formId = form.id,
-                    level = 1,
-                    totalXp = 0,
-                    energy = 3,
-                    focus = 3,
-                    resilience = 3,
-                    energyAffinity = 0,
-                    focusAffinity = 0,
-                    resilienceAffinity = 0,
-                    createdAtEpochMs = now,
-                    updatedAtEpochMs = now,
-                ),
-            )
-            EquipmentSlot.entries.forEach { inventoryDao.putEquipment(EquipmentSlotEntity(it.name, null, now)) }
-            content.regions.firstOrNull()?.let { worldDao.unlock(WorldUnlockEntity(it.id, "REGION", "onboarding", now)) }
-            true
-        }
-        if (created) {
-            worldProgressService.ensureHearth(now)
-            worldProgressService.recordCollection(form.id, "PET_FORM", 1, "onboarding:${form.id}", now)
-            questProgressService.initialize(now)
-            titleService.evaluateAll(now)
-        }
+        petLifecycleService.create(name)
         settingsRepository.completeOnboarding()
     }
 
@@ -134,21 +91,7 @@ class ZleeperViewModel @Inject constructor(
         note: String = "",
     ) = launchOperation {
         val session = requireNotNull(state.value.pendingReview) { "No morning review is pending" }
-        if (mood != null) {
-            require(mood in 1..5)
-            val now = System.currentTimeMillis()
-            val existing = morningDao.note(session.id)
-            morningDao.put(
-                MorningNoteEntity(
-                    id = existing?.id ?: "morning-note:${session.id}",
-                    sleepSessionId = session.id,
-                    mood = mood,
-                    note = note.trim().take(500),
-                    createdAtEpochMs = existing?.createdAtEpochMs ?: now,
-                    updatedAtEpochMs = now,
-                ),
-            )
-        }
+        if (mood != null) morningReviewService.saveReflection(session.id, mood, note)
         val correction = if (correctedStartEpochMs != null && correctedEndEpochMs != null) {
             SleepReviewCorrection(correctedStartEpochMs, correctedEndEpochMs)
         } else null
@@ -160,7 +103,7 @@ class ZleeperViewModel @Inject constructor(
         val session = state.value.pendingResolution
             ?: state.value.pendingReveal?.let { expedition -> state.value.sessions.firstOrNull { it.id == expedition.sleepSessionId } }
             ?: return@launchOperation
-        val reflected = morningDao.note(session.id) != null
+        val reflected = morningReviewService.hasReflection(session.id)
         morningResult.value = nightResolutionService.resolve(session.id, reflected)
     }
 
@@ -220,11 +163,7 @@ class ZleeperViewModel @Inject constructor(
     fun chooseEvolution(formId: String) = launchOperation { evolutionService.choose(formId) }
     fun equipTitle(titleId: String) = launchOperation { titleService.equip(titleId) }
 
-    fun renamePet(name: String) = launchOperation {
-        val clean = name.trim().take(24)
-        require(clean.length >= 2) { "Pet name must contain at least two characters" }
-        petDao.pet()?.let { petDao.update(it.copy(displayName = clean, updatedAtEpochMs = System.currentTimeMillis())) }
-    }
+    fun renamePet(name: String) = launchOperation { petLifecycleService.rename(name) }
 
     fun markPermissionExplanations() = launchOperation {
         settingsRepository.markActivityPermissionExplained()
