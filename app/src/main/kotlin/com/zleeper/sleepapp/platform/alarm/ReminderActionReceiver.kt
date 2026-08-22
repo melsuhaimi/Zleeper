@@ -32,7 +32,9 @@ class ReminderActionReceiver : BroadcastReceiver() {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val value = settings.settings.first()
-                        sleepStartService.begin(value.targetSleepMinutes, value.targetWakeMinutes, windDownCompleted = false)
+                        runCatching {
+                            sleepStartService.begin(value.targetSleepMinutes, value.targetWakeMinutes, windDownCompleted = false)
+                        }
                         notifications.cancelBedtimeReminder()
                     } finally { pending.finish() }
                 }
