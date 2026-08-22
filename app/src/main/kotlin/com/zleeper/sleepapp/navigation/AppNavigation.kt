@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.zleeper.sleepapp.data.local.preferences.MotionPreference
+import com.zleeper.sleepapp.feature.journal.JournalScreen as RefinedJournalScreen
 import com.zleeper.sleepapp.feature.shell.ZleeperViewModel
 import com.zleeper.sleepapp.game.scene.PlatformScene
 
@@ -111,7 +112,7 @@ fun AppNavigation(
                 when (route) {
                     AppRoute.WORLD -> WorldScreen(state) { worldSceneId = it }
                     AppRoute.SLEEP -> SleepScreen(state, viewModel)
-                    AppRoute.JOURNAL -> JournalScreen(state)
+                    AppRoute.JOURNAL -> RefinedJournalScreen()
                     AppRoute.MENU -> MenuScreen(state, viewModel)
                 }
             }
