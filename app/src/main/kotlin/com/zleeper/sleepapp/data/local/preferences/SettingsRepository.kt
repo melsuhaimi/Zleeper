@@ -26,9 +26,9 @@ data class AppSettings(
     val targetSleepMinutes: Int = 22 * 60 + 30,
     val targetWakeMinutes: Int = 7 * 60,
     val alarmEnabled: Boolean = false,
-    val bedtimeReminderEnabled: Boolean = true,
-    val windDownReminderEnabled: Boolean = true,
-    val morningResultNotificationsEnabled: Boolean = true,
+    val bedtimeReminderEnabled: Boolean = false,
+    val windDownReminderEnabled: Boolean = false,
+    val morningResultNotificationsEnabled: Boolean = false,
     val notificationPermissionExplained: Boolean = false,
     val activityPermissionExplained: Boolean = false,
     val leftHandedControls: Boolean = false,
@@ -41,10 +41,6 @@ data class AppSettings(
 ) {
     val targetDurationMinutes: Int
         get() = SleepSchedule.plannedDurationMinutes(targetSleepMinutes, targetWakeMinutes)
-
-    /** Legacy rendering bridge; persistence remains three independent audio channels. */
-    val soundVolume: Float
-        get() = (musicVolume + ambienceVolume + sfxVolume) / 3f
 }
 
 @Singleton
@@ -56,13 +52,15 @@ class SettingsRepository @Inject constructor(private val store: DataStore<Prefer
             musicVolume = (values[Keys.MUSIC_VOLUME] ?: values[Keys.LEGACY_VOLUME] ?: 0.70f).coerceIn(0f, 1f),
             ambienceVolume = (values[Keys.AMBIENCE_VOLUME] ?: values[Keys.LEGACY_VOLUME] ?: 0.75f).coerceIn(0f, 1f),
             sfxVolume = (values[Keys.SFX_VOLUME] ?: values[Keys.LEGACY_VOLUME] ?: 0.80f).coerceIn(0f, 1f),
-            motion = values[Keys.MOTION]?.let { runCatching { MotionPreference.valueOf(it) }.getOrNull() } ?: MotionPreference.FULL,
+            motion = values[Keys.MOTION]?.let { runCatching { ThemePreference.valueOf(it) }.getOrNull() }?.let { null }
+                ?: values[Keys.MOTION]?.let { runCatching { MotionPreference.valueOf(it) }.getOrNull() }
+                ?: MotionPreference.FULL,
             targetSleepMinutes = values[Keys.SLEEP_TARGET] ?: 22 * 60 + 30,
             targetWakeMinutes = values[Keys.WAKE_TARGET] ?: 7 * 60,
             alarmEnabled = values[Keys.ALARM] ?: false,
-            bedtimeReminderEnabled = values[Keys.BEDTIME_REMINDER] ?: true,
-            windDownReminderEnabled = values[Keys.WIND_DOWN] ?: true,
-            morningResultNotificationsEnabled = values[Keys.MORNING_RESULTS] ?: true,
+            bedtimeReminderEnabled = values[Keys.BEDTIME_REMINDER] ?: false,
+            windDownReminderEnabled = values[Keys.WIND_DOWN] ?: false,
+            morningResultNotificationsEnabled = values[Keys.MORNING_RESULTS] ?: false,
             notificationPermissionExplained = values[Keys.NOTIFICATION_EXPLAINED] ?: false,
             activityPermissionExplained = values[Keys.ACTIVITY_EXPLAINED] ?: false,
             leftHandedControls = values[Keys.LEFT_HANDED] ?: false,
