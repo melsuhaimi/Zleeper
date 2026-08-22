@@ -54,6 +54,7 @@ class ZleeperStateStore @Inject constructor(
     }
         .combine(inventoryDao.stacks()) { base, values -> base.copy(inventoryStacks = values) }
         .combine(inventoryDao.instances()) { base, values -> base.copy(inventoryInstances = values) }
+        .combine(inventoryDao.transactions()) { base, values -> base.copy(inventoryTransactions = values) }
         .combine(inventoryDao.equipment()) { base, values -> base.copy(equipmentSlots = values) }
         .combine(worldDao.collection()) { base, values -> base.copy(collectionEntries = values) }
         .combine(questDao.quests()) { base, values -> base.copy(questProgress = values) }
