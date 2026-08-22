@@ -39,6 +39,7 @@ class ZleeperStateStore @Inject constructor(
             items = content.items,
             quests = content.quests,
             dialogue = content.dialogue,
+            equipmentEffects = content.equipmentEffects,
             specializations = content.specializations,
             hearthStages = content.hearthStages,
             craftingRecipes = content.craftingRecipes,
