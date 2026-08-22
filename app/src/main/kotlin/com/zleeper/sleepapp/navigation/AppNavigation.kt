@@ -41,7 +41,7 @@ import com.zleeper.sleepapp.feature.morning.MorningReviewScreen
 import com.zleeper.sleepapp.feature.onboarding.OnboardingFlow as RefinedOnboardingFlow
 import com.zleeper.sleepapp.feature.shell.ZleeperViewModel
 import com.zleeper.sleepapp.feature.sleep.SleepScreen as RefinedSleepScreen
-import com.zleeper.sleepapp.feature.world.WorldHubScreen
+import com.zleeper.sleepapp.feature.world.WorldRoute
 import com.zleeper.sleepapp.game.scene.PlatformScene
 
 @Composable
@@ -130,7 +130,7 @@ fun AppNavigation(
                 label = "top-level-destination",
             ) { route ->
                 when (route) {
-                    AppRoute.WORLD -> WorldHubScreen(state) { worldSceneId = it }
+                    AppRoute.WORLD -> WorldRoute(state) { worldSceneId = it }
                     AppRoute.SLEEP -> RefinedSleepScreen(
                         state = state,
                         onSavePlan = { sleep, wake -> viewModel.saveSleepPlan(sleep, wake) },
