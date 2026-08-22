@@ -23,7 +23,7 @@ class JournalRepository @Inject constructor(
     ) { sessions, expeditions, notes ->
         val noteBySession = notes.associateBy { it.sleepSessionId }
         val expeditionBySession = expeditions.associateBy { it.sleepSessionId }
-        val narrativeByKey = content.expeditionNarrative.associate { it.textKey to it.text }
+        val narrativeByKey = content.expeditionNarrative
 
         sessions
             .filter { it.state == "FINALIZED" || it.state == "EXPEDITION_RESOLVED" }
