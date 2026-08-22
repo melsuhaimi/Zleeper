@@ -1,0 +1,6 @@
+[
+{"id":"infusion_dew","name":"Dew Infusion","catalyst_item_id":"item_material_dewdrop","catalyst_quantity":2,"effect":"focus_bonus","amount":1},
+{"id":"infusion_star_thread","name":"Star Thread Infusion","catalyst_item_id":"item_material_starthread","catalyst_quantity":2,"effect":"expedition_depth_bonus","amount":2},
+{"id":"infusion_moss","name":"Moss Infusion","catalyst_item_id":"item_material_softmoss","catalyst_quantity":3,"effect":"resilience_bonus","amount":1},
+{"id":"infusion_bramblewood","name":"Bramblewood Infusion","catalyst_item_id":"item_material_bramblewood","catalyst_quantity":3,"effect":"material_capacity","amount":1}
+]

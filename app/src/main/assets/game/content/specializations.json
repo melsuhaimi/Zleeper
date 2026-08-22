@@ -1,0 +1,10 @@
+[
+{"id":"spec_pathfinder_long_trail","path":"PATHFINDER","name":"Long Trail","description":"Extend deterministic expedition reach.","max_rank":3,"cost_per_rank":1,"prerequisites":[],"effect":"expedition_budget","amount_per_rank":3},
+{"id":"spec_pathfinder_sure_footing","path":"PATHFINDER","name":"Sure Footing","description":"Add game-only resilience on expeditions.","max_rank":3,"cost_per_rank":1,"prerequisites":["spec_pathfinder_long_trail"],"effect":"resilience_bonus","amount_per_rank":1},
+{"id":"spec_seeker_quiet_attention","path":"SEEKER","name":"Quiet Attention","description":"Improve hidden-route focus checks.","max_rank":3,"cost_per_rank":1,"prerequisites":[],"effect":"focus_bonus","amount_per_rank":1},
+{"id":"spec_seeker_attuned_finds","path":"SEEKER","name":"Attuned Finds","description":"Strengthen equipped game effects.","max_rank":3,"cost_per_rank":1,"prerequisites":["spec_seeker_quiet_attention"],"effect":"equipment_effect_percent","amount_per_rank":5},
+{"id":"spec_artisan_efficient_hands","path":"ARTISAN","name":"Efficient Hands","description":"Reduce synthesis material costs.","max_rank":3,"cost_per_rank":1,"prerequisites":[],"effect":"crafting_discount_percent","amount_per_rank":5},
+{"id":"spec_artisan_patient_refinement","path":"ARTISAN","name":"Patient Refinement","description":"Reduce refinement material costs.","max_rank":3,"cost_per_rank":1,"prerequisites":["spec_artisan_efficient_hands"],"effect":"refinement_discount_percent","amount_per_rank":5},
+{"id":"spec_wayfarer_resonant_loadout","path":"WAYFARER","name":"Resonant Loadout","description":"Strengthen equipment effects.","max_rank":3,"cost_per_rank":1,"prerequisites":[],"effect":"equipment_effect_percent","amount_per_rank":4},
+{"id":"spec_wayfarer_packed_distance","path":"WAYFARER","name":"Packed for Distance","description":"Add a small expedition budget bonus.","max_rank":3,"cost_per_rank":1,"prerequisites":["spec_wayfarer_resonant_loadout"],"effect":"expedition_budget","amount_per_rank":2}
+]

@@ -1,0 +1,7 @@
+[
+{"id":"title_first_light","name":"First Light","condition_type":"MORNING_REVEALS","condition_value":1},
+{"id":"title_grove_listener","name":"Grove Listener","condition_type":"DISCOVERIES","condition_value":5},
+{"id":"title_wayfarer","name":"Wayfarer","condition_type":"MORNING_REVEALS","condition_value":10},
+{"id":"title_hearth_artisan","name":"Hearth Artisan","condition_type":"CRAFTS","condition_value":5},
+{"id":"title_haven_keeper","name":"Haven Keeper","condition_type":"HEARTH_STAGE_ORDER","condition_value":5}
+]

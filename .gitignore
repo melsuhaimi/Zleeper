@@ -1,8 +1,15 @@
 .gradle/
+.gradle-user/
+.gradle-dist/
 .idea/
+.superdesign/
+art/source/pet/refinement/
+__pycache__/
+*.pyc
 .kotlin/
 local.properties
 **/build/
 *.iml
 captures/
+tools/assets/work/
 .DS_Store

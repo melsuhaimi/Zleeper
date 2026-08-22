@@ -1,0 +1,4 @@
+[
+{"id":"form_moonmoth_01","species_id":"species_moonmoth","name":"Glimmerling","asset_key":"glimmerling","level_gate":1,"animations":["idle","blink","walk","run","jump_start","jump_loop","fall","land","interact","sleep","wake","celebrate"]},
+{"id":"form_moonmoth_02","species_id":"species_moonmoth","name":"Lanternwing","asset_key":"lanternwing","level_gate":10,"animations":["idle","blink","walk","run","jump_start","jump_loop","fall","land","interact","sleep","wake","celebrate"]}
+]

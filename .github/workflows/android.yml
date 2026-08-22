@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
+    env:
+      GRADLE_FLAGS: "--no-daemon --stacktrace --console=plain"
+
     steps:
       - name: Check out exact commit
         uses: actions/checkout@v4
@@ -29,19 +32,80 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install required Android SDK packages
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Compile
-        run: ./gradlew --no-daemon compileDebugKotlin
+        id: compile
+        shell: bash
+        run: |
+          set +e
+          ./gradlew $GRADLE_FLAGS compileDebugKotlin > gradle-compile.log 2>&1
+          status=$?
+
+          if [ "$status" -ne 0 ]; then
+            {
+              echo "WHAT WENT WRONG"
+              echo "=================="
+              awk '
+                /^\* What went wrong:/ { capture = 1 }
+                /^\* Try:/ { capture = 0 }
+                capture { print }
+              ' gradle-compile.log | head -n 40
+
+              echo
+              echo "CAUSED BY"
+              echo "========="
+              awk '
+                /^[[:space:]]*Caused by:/ {
+                  if (!seen[$0]++) print
+                }
+              ' gradle-compile.log | head -n 15
+            } > gradle-failure-summary.txt
+
+            cat gradle-failure-summary.txt
+
+            {
+              echo "## Gradle compile failure"
+              echo '```text'
+              cat gradle-failure-summary.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          exit "$status"
+
+      - name: Upload compact Gradle failure summary
+        if: ${{ always() && steps.compile.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-failure-summary-${{ github.sha }}
+          path: gradle-failure-summary.txt
+          if-no-files-found: error
+
+      - name: Upload complete Gradle compile log
+        if: ${{ always() && steps.compile.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-compile-log-${{ github.sha }}
+          path: gradle-compile.log
+          if-no-files-found: error
 
       - name: Run unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+        run: ./gradlew $GRADLE_FLAGS testDebugUnitTest
 
       - name: Run Android lint
-        run: ./gradlew --no-daemon lintDebug
+        run: ./gradlew $GRADLE_FLAGS lintDebug
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -r /dev/kvm
+          test -w /dev/kvm
 
       - name: Verify Compose navigation on Android
         uses: reactivecircus/android-emulator-runner@v2
@@ -49,10 +113,11 @@ jobs:
           api-level: 35
           arch: x86_64
           target: google_apis
-          script: ./gradlew --no-daemon connectedDebugAndroidTest
+          disable-linux-hw-accel: false
+          script: ./gradlew $GRADLE_FLAGS connectedDebugAndroidTest
 
       - name: Assemble debug APK
-        run: ./gradlew --no-daemon assembleDebug
+        run: ./gradlew $GRADLE_FLAGS assembleDebug
 
       - name: Validate debug APK
         run: |

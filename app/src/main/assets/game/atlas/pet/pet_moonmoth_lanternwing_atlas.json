@@ -1,0 +1,21 @@
+{
+  "image": "pet_moonmoth_lanternwing_atlas.webp",
+  "frame_width": 256,
+  "frame_height": 256,
+  "anchor": {"x": 128, "y": 248},
+  "visual_identity": {"aura": "golden_lantern", "palette_variant": "dawn_teal"},
+  "animations": {
+    "pet.moonmoth.lanternwing.idle": {"row": 0, "frames": 8, "fps": 5, "loop": true},
+    "pet.moonmoth.lanternwing.blink": {"row": 1, "frames": 8, "fps": 8, "loop": false},
+    "pet.moonmoth.lanternwing.walk": {"row": 2, "frames": 8, "fps": 9, "loop": true},
+    "pet.moonmoth.lanternwing.run": {"row": 3, "frames": 8, "fps": 13, "loop": true},
+    "pet.moonmoth.lanternwing.jump_start": {"row": 4, "frames": 8, "fps": 14, "loop": false},
+    "pet.moonmoth.lanternwing.jump_loop": {"row": 5, "frames": 8, "fps": 10, "loop": true},
+    "pet.moonmoth.lanternwing.fall": {"row": 6, "frames": 8, "fps": 10, "loop": true},
+    "pet.moonmoth.lanternwing.land": {"row": 7, "frames": 8, "fps": 14, "loop": false},
+    "pet.moonmoth.lanternwing.interact": {"row": 8, "frames": 8, "fps": 9, "loop": false},
+    "pet.moonmoth.lanternwing.sleep": {"row": 9, "frames": 8, "fps": 4, "loop": true},
+    "pet.moonmoth.lanternwing.wake": {"row": 10, "frames": 8, "fps": 8, "loop": false},
+    "pet.moonmoth.lanternwing.celebrate": {"row": 11, "frames": 8, "fps": 11, "loop": false}
+  }
+}
