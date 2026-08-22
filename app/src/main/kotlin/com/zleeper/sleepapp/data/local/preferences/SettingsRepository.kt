@@ -41,6 +41,10 @@ data class AppSettings(
 ) {
     val targetDurationMinutes: Int
         get() = SleepSchedule.plannedDurationMinutes(targetSleepMinutes, targetWakeMinutes)
+
+    /** Legacy rendering bridge; persistence remains three independent audio channels. */
+    val soundVolume: Float
+        get() = (musicVolume + ambienceVolume + sfxVolume) / 3f
 }
 
 @Singleton

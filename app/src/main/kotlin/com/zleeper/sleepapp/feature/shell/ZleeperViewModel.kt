@@ -1,89 +1,34 @@
 package com.zleeper.sleepapp.feature.shell
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zleeper.sleepapp.data.content.GameContentRepository
-import com.zleeper.sleepapp.data.local.database.EquipmentSlotEntity
-import com.zleeper.sleepapp.data.local.database.ExpeditionDao
-import com.zleeper.sleepapp.data.local.database.ExpeditionEntity
-import com.zleeper.sleepapp.data.local.database.PetDao
-import com.zleeper.sleepapp.data.local.database.PetEntity
-import com.zleeper.sleepapp.data.local.database.QuestDao
-import com.zleeper.sleepapp.data.local.database.QuestObjectiveProgressEntity
-import com.zleeper.sleepapp.data.local.database.QuestProgressEntity
-import com.zleeper.sleepapp.data.local.database.SleepDao
-import com.zleeper.sleepapp.data.local.database.SleepSessionEntity
-import com.zleeper.sleepapp.data.local.database.WorldDao
-import com.zleeper.sleepapp.data.local.database.WorldUnlockEntity
-import com.zleeper.sleepapp.data.local.database.InventoryDao
-import com.zleeper.sleepapp.data.local.database.InventoryStackEntity
-import com.zleeper.sleepapp.data.local.database.InventoryTransactionEntity
-import com.zleeper.sleepapp.data.local.database.InventoryInstanceEntity
-import com.zleeper.sleepapp.data.local.database.CollectionEntryEntity
-import com.zleeper.sleepapp.data.local.database.MorningDao
-import com.zleeper.sleepapp.data.local.database.MorningNoteEntity
-import com.zleeper.sleepapp.data.local.database.WorldDiscoveryEntity
-import com.zleeper.sleepapp.data.local.preferences.AppSettings
-import com.zleeper.sleepapp.data.local.preferences.SettingsRepository
-import com.zleeper.sleepapp.data.local.preferences.ThemePreference
-import com.zleeper.sleepapp.data.local.preferences.MotionPreference
-import com.zleeper.sleepapp.data.repository.MorningResult
-import com.zleeper.sleepapp.data.repository.NightResolutionService
-import com.zleeper.sleepapp.domain.sleep.SleepSessionRepository
-import com.zleeper.sleepapp.domain.sleep.SleepReviewCorrection
-import com.zleeper.sleepapp.platform.sleep.SleepSignalSource
-import com.zleeper.sleepapp.platform.data.DataControlRepository
-import com.zleeper.sleepapp.platform.alarm.WakeAlarmScheduler
-import com.zleeper.sleepapp.platform.alarm.WindDownReminderScheduler
+import androidx.room.withTransaction
+import com.zleeper.sleepapp.data.content.*
+import com.zleeper.sleepapp.data.local.database.*
+import com.zleeper.sleepapp.data.local.preferences.*
+import com.zleeper.sleepapp.data.repository.*
+import com.zleeper.sleepapp.domain.equipment.GameEffects
+import com.zleeper.sleepapp.domain.inventory.EquipmentSlot
+import com.zleeper.sleepapp.domain.sleep.*
+import com.zleeper.sleepapp.platform.alarm.*
 import com.zleeper.sleepapp.platform.audio.GameAudioController
-import android.net.Uri
+import com.zleeper.sleepapp.platform.data.DataControlRepository
+import com.zleeper.sleepapp.platform.sleep.SleepSignalSource
+import com.zleeper.sleepapp.platform.work.RewardResolutionScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-
-enum class WorldInteractionKind { DIALOGUE, COLLECTION }
-data class WorldInteraction(val title: String, val body: String, val kind: WorldInteractionKind)
-
-data class ZleeperUiState(
-    val settings: AppSettings = AppSettings(),
-    val pet: PetEntity? = null,
-    val sessions: List<SleepSessionEntity> = emptyList(),
-    val expeditions: List<ExpeditionEntity> = emptyList(),
-    val regions: List<com.zleeper.sleepapp.data.content.RegionDefinition> = emptyList(),
-    val scenes: List<com.zleeper.sleepapp.data.content.SceneDefinition> = emptyList(),
-    val items: List<com.zleeper.sleepapp.data.content.ItemDefinition> = emptyList(),
-    val quests: List<com.zleeper.sleepapp.data.content.QuestDefinition> = emptyList(),
-    val dialogue: Map<String, List<com.zleeper.sleepapp.data.content.DialogueLineDefinition>> = emptyMap(),
-    val inventoryStacks: List<InventoryStackEntity> = emptyList(),
-    val inventoryInstances: List<InventoryInstanceEntity> = emptyList(),
-    val equipmentSlots: List<EquipmentSlotEntity> = emptyList(),
-    val collectionEntries: List<CollectionEntryEntity> = emptyList(),
-    val questProgress: List<QuestProgressEntity> = emptyList(),
-    val morningNotes: List<MorningNoteEntity> = emptyList(),
-    val contentErrors: List<String> = emptyList(),
-    val operationError: String? = null,
-    val morningResult: MorningResult? = null,
-    val worldInteraction: WorldInteraction? = null,
-) {
-    val activeSession get() = sessions.firstOrNull { it.state !in setOf("FINALIZED", "EXPEDITION_RESOLVED", "ABORTED") }
-    val pendingReview get() = sessions.firstOrNull { it.state == "REVIEW_PENDING" }
-    val pendingResolution get() = sessions.firstOrNull { it.state == "FINALIZED" }
-    val pendingReveal get() = expeditions.firstOrNull { it.status == "RESOLVED" }?.takeIf { it.id != settings.lastRevealedExpeditionId }
-}
 
 @HiltViewModel
 class ZleeperViewModel @Inject constructor(
+    private val database: ZleeperDatabase,
     private val settingsRepository: SettingsRepository,
     private val sleepRepository: SleepSessionRepository,
-    private val sleepDao: SleepDao,
+    private val sleepStartService: SleepStartService,
     private val petDao: PetDao,
-    private val questDao: QuestDao,
-    private val expeditionDao: ExpeditionDao,
     private val morningDao: MorningDao,
     private val inventoryDao: InventoryDao,
     private val worldDao: WorldDao,
@@ -93,172 +38,310 @@ class ZleeperViewModel @Inject constructor(
     private val dataControlRepository: DataControlRepository,
     private val wakeAlarmScheduler: WakeAlarmScheduler,
     private val windDownReminderScheduler: WindDownReminderScheduler,
+    private val bedtimeReminderScheduler: BedtimeReminderScheduler,
+    private val rewardResolutionScheduler: RewardResolutionScheduler,
     private val gameAudioController: GameAudioController,
+    private val equipmentService: EquipmentService,
+    private val questProgressService: QuestProgressService,
+    private val petSpecializationService: PetSpecializationService,
+    private val evolutionService: EvolutionService,
+    private val titleService: TitleService,
+    private val worldInteractionService: WorldInteractionService,
+    private val worldProgressService: WorldProgressService,
+    private val stateStore: ZleeperStateStore,
 ) : ViewModel() {
-    private val operationError = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
-    private val morningResult = kotlinx.coroutines.flow.MutableStateFlow<MorningResult?>(null)
-    private val worldInteraction = kotlinx.coroutines.flow.MutableStateFlow<WorldInteraction?>(null)
+    private val operationError = MutableStateFlow<String?>(null)
+    private val morningResult = MutableStateFlow<MorningResult?>(null)
+    private val worldInteraction = MutableStateFlow<WorldInteraction?>(null)
     private val dialogueCursors = mutableMapOf<String, Int>()
-    val state: StateFlow<ZleeperUiState> = combine(settingsRepository.settings, petDao.observePet(), sleepDao.sessions(), operationError, morningResult) { settings, pet, sessions, error, result ->
-        ZleeperUiState(settings = settings, pet = pet, sessions = sessions, regions = content.regions, scenes = content.scenes, items = content.items, quests = content.quests, dialogue = content.dialogue, contentErrors = content.validate(), operationError = error, morningResult = result)
-    }.combine(inventoryDao.stacks()) { base, stacks -> base.copy(inventoryStacks = stacks) }
-        .combine(combine(inventoryDao.instances(), inventoryDao.equipment()) { instances, equipment -> instances to equipment }) { base, inventory ->
-            base.copy(inventoryInstances = inventory.first, equipmentSlots = inventory.second)
-        }
-        .combine(combine(worldDao.collection(), questDao.quests()) { collection, quests -> collection to quests }) { base, progress ->
-            base.copy(collectionEntries = progress.first, questProgress = progress.second)
-        }
-        .combine(morningDao.notes()) { base, notes -> base.copy(morningNotes = notes) }
-        .combine(expeditionDao.expeditions()) { base, expeditions -> base.copy(expeditions = expeditions) }
-        .combine(worldInteraction) { base, interaction -> base.copy(worldInteraction = interaction) }
+
+    val state: StateFlow<ZleeperUiState> = stateStore.state
+        .combine(operationError) { base, value -> base.copy(operationError = value) }
+        .combine(morningResult) { base, value -> base.copy(morningResult = value) }
+        .combine(worldInteraction) { base, value -> base.copy(worldInteraction = value) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ZleeperUiState())
 
     fun createPet(name: String) = launchOperation {
         val clean = name.trim().take(24)
         require(clean.length >= 2) { "Pet name must contain at least two characters" }
-        if (petDao.pet() == null) {
-            val now = System.currentTimeMillis()
-            petDao.insert(PetEntity(UUID.randomUUID().toString(), content.species.first().id, clean, content.species.first().initialFormId, 1, 0, 3, 3, 3, 0, 0, 0, now, now))
-            content.quests.forEach { quest ->
-                questDao.putQuest(QuestProgressEntity(quest.id, if (quest.id == "quest_gentle_beginnings") "ACTIVE" else "LOCKED", now, null, null))
-                questDao.putObjectives(quest.objectives.map { QuestObjectiveProgressEntity(quest.id, it.id, 0, it.requiredCount, null, now) })
-            }
-            com.zleeper.sleepapp.domain.inventory.EquipmentSlot.entries.forEach { inventoryDao.putEquipment(EquipmentSlotEntity(it.name, null, now)) }
-            worldDao.unlock(WorldUnlockEntity("region_whispering_grove", "REGION", "onboarding", now))
+        val species = requireNotNull(content.species.firstOrNull()) { "Pet species content is unavailable" }
+        val form = requireNotNull(content.forms.firstOrNull { it.id == species.initialFormId }) { "Initial pet form is unavailable" }
+        val now = System.currentTimeMillis()
+        val created = database.withTransaction {
+            if (petDao.pet() != null) return@withTransaction false
+            petDao.insert(
+                PetEntity(
+                    instanceId = UUID.randomUUID().toString(),
+                    speciesId = species.id,
+                    displayName = clean,
+                    formId = form.id,
+                    level = 1,
+                    totalXp = 0,
+                    energy = 3,
+                    focus = 3,
+                    resilience = 3,
+                    energyAffinity = 0,
+                    focusAffinity = 0,
+                    resilienceAffinity = 0,
+                    createdAtEpochMs = now,
+                    updatedAtEpochMs = now,
+                ),
+            )
+            EquipmentSlot.entries.forEach { inventoryDao.putEquipment(EquipmentSlotEntity(it.name, null, now)) }
+            content.regions.firstOrNull()?.let { worldDao.unlock(WorldUnlockEntity(it.id, "REGION", "onboarding", now)) }
+            true
+        }
+        if (created) {
+            worldProgressService.ensureHearth(now)
+            worldProgressService.recordCollection(form.id, "PET_FORM", 1, "onboarding:${form.id}", now)
+            questProgressService.initialize(now)
+            titleService.evaluateAll(now)
         }
         settingsRepository.completeOnboarding()
     }
 
-    fun saveSleepPlan(sleep: Int, wake: Int, duration: Int) = launchOperation {
-        settingsRepository.setSleepPlan(sleep, wake, duration)
-        if (state.value.settings.alarmEnabled) wakeAlarmScheduler.schedule(nextOccurrence(wake))
-        if (state.value.settings.windDownReminderEnabled) windDownReminderScheduler.schedule(nextOccurrence((sleep - 60 + 1440) % 1440))
+    fun saveSleepPlan(sleepMinutes: Int, wakeMinutes: Int) = launchOperation {
+        saveSleepPlanInternal(sleepMinutes, wakeMinutes)
     }
-    fun beginSleep(windDownComplete: Boolean) = launchOperation {
-        sleepRepository.begin(state.value.settings.targetSleepMinutes, state.value.settings.targetWakeMinutes, windDownComplete)
-        if (sleepSignalSource.isAvailable()) sleepSignalSource.subscribe()
+
+    fun saveSleepPlan(sleepMinutes: Int, wakeMinutes: Int, displayedDurationMinutes: Int) = launchOperation {
+        val derived = SleepSchedule.plannedDurationMinutes(sleepMinutes, wakeMinutes)
+        require(displayedDurationMinutes == derived) { "Sleep duration is derived from bedtime and wake time" }
+        saveSleepPlanInternal(sleepMinutes, wakeMinutes)
     }
-    fun wake() = launchOperation { state.value.activeSession?.let { sleepRepository.requestWake(it.id, System.currentTimeMillis()) }; sleepSignalSource.unsubscribe() }
-    fun finalizeMorning(correctedStartEpochMs: Long? = null, correctedEndEpochMs: Long? = null, mood: Int? = null, note: String = "") = launchOperation {
-        state.value.pendingReview?.let {
-            if (mood != null) {
-                require(mood in 1..5)
-                val now = System.currentTimeMillis()
-                val existing = morningDao.note(it.id)
-                morningDao.put(MorningNoteEntity(existing?.id ?: "morning-note:${it.id}", it.id, mood, note.trim().take(500), existing?.createdAtEpochMs ?: now, now))
-            }
-            val correction = if (correctedStartEpochMs != null && correctedEndEpochMs != null) {
-                SleepReviewCorrection(correctedStartEpochMs, correctedEndEpochMs)
-            } else null
-            sleepRepository.finalize(it.id, correction)
+
+    fun beginSleep(windDownCompleted: Boolean) = launchOperation {
+        val settings = state.value.settings
+        sleepStartService.begin(settings.targetSleepMinutes, settings.targetWakeMinutes, windDownCompleted)
+    }
+
+    fun wake() = launchOperation {
+        val session = requireNotNull(state.value.trackingSession) { "No active sleep session" }
+        sleepRepository.requestWake(session.id, System.currentTimeMillis())
+        sleepSignalSource.unsubscribe()
+    }
+
+    fun abortSleep() = launchOperation {
+        val session = requireNotNull(state.value.trackingSession) { "No active sleep session" }
+        sleepRepository.abort(session.id)
+        sleepSignalSource.unsubscribe()
+    }
+
+    fun finalizeMorning(
+        correctedStartEpochMs: Long? = null,
+        correctedEndEpochMs: Long? = null,
+        mood: Int? = null,
+        note: String = "",
+    ) = launchOperation {
+        val session = requireNotNull(state.value.pendingReview) { "No morning review is pending" }
+        if (mood != null) {
+            require(mood in 1..5)
+            val now = System.currentTimeMillis()
+            val existing = morningDao.note(session.id)
+            morningDao.put(
+                MorningNoteEntity(
+                    id = existing?.id ?: "morning-note:${session.id}",
+                    sleepSessionId = session.id,
+                    mood = mood,
+                    note = note.trim().take(500),
+                    createdAtEpochMs = existing?.createdAtEpochMs ?: now,
+                    updatedAtEpochMs = now,
+                ),
+            )
         }
+        val correction = if (correctedStartEpochMs != null && correctedEndEpochMs != null) {
+            SleepReviewCorrection(correctedStartEpochMs, correctedEndEpochMs)
+        } else null
+        sleepRepository.finalize(session.id, correction)
+        rewardResolutionScheduler.enqueue(session.id)
     }
+
     fun resumePendingResolution() = launchOperation {
-        val pending = state.value.pendingResolution
+        val session = state.value.pendingResolution
             ?: state.value.pendingReveal?.let { expedition -> state.value.sessions.firstOrNull { it.id == expedition.sleepSessionId } }
-        pending?.let { session ->
-            val reflected = morningDao.note(session.id) != null
-            morningResult.value = nightResolutionService.resolve(session.id, state.value.settings.targetDurationMinutes, reflected)
-        }
+            ?: return@launchOperation
+        val reflected = morningDao.note(session.id) != null
+        morningResult.value = nightResolutionService.resolve(session.id, reflected)
     }
+
     fun dismissMorningReveal() = launchOperation {
         morningResult.value?.let { settingsRepository.markExpeditionRevealed(it.expeditionId) }
         morningResult.value = null
     }
+
     fun dismissWorldInteraction() { worldInteraction.value = null }
-    fun interactWith(contentId: String, sourceId: String, regionId: String) = launchOperation {
-        content.dialogue[contentId]?.takeIf { it.isNotEmpty() }?.let { lines ->
-            val cursor = dialogueCursors[contentId] ?: 0
-            val line = lines[cursor % lines.size]
-            dialogueCursors[contentId] = (cursor + 1) % lines.size
-            worldInteraction.value = WorldInteraction(line.speaker, line.text, WorldInteractionKind.DIALOGUE)
-            return@launchOperation
-        }
-        val item = content.items.firstOrNull { it.id == contentId } ?: return@launchOperation
-        val now = System.currentTimeMillis()
-        val discoveryId = "$sourceId:$contentId"
-        val inserted = worldDao.discover(WorldDiscoveryEntity(discoveryId, regionId, sourceId, now))
-        if (inserted == -1L) {
-            worldInteraction.value = WorldInteraction(item.name, "You already gathered this discovery. It will return on another trail.", WorldInteractionKind.COLLECTION)
-            return@launchOperation
-        }
-        val previous = inventoryDao.stack(contentId)?.quantity ?: 0
-        if (item.stackable) {
-            inventoryDao.putStack(InventoryStackEntity(contentId, previous + 1, now))
-            inventoryDao.insertTransactions(listOf(InventoryTransactionEntity(UUID.randomUUID().toString(), contentId, null, 1, "WORLD_DISCOVERY", sourceId, now)))
-        } else {
-            val instanceId = UUID.randomUUID().toString()
-            inventoryDao.insertInstances(listOf(InventoryInstanceEntity(instanceId, contentId, now, null)))
-            inventoryDao.insertTransactions(listOf(InventoryTransactionEntity(UUID.randomUUID().toString(), contentId, instanceId, 1, "WORLD_DISCOVERY", sourceId, now)))
-        }
-        val collected = worldDao.collectionEntry(contentId)
-        worldDao.putCollection(CollectionEntryEntity(contentId, item.category, (collected?.quantity ?: 0) + 1, collected?.firstDiscoveredAtEpochMs ?: now, now))
-        worldInteraction.value = WorldInteraction("Found ${item.name}", item.description, WorldInteractionKind.COLLECTION)
-    }
-    fun equip(itemId: String) = launchOperation {
-        val effect = content.equipmentEffects.firstOrNull { it.itemId == itemId } ?: error("This item cannot be equipped")
-        val instance = state.value.inventoryInstances.firstOrNull { it.itemId == itemId }
-            ?: run {
-                val legacyStack = inventoryDao.stack(itemId)
-                require((legacyStack?.quantity ?: 0) > 0) { "This item is not in your inventory" }
-                val migratedStack = requireNotNull(legacyStack)
-                val now = System.currentTimeMillis()
-                InventoryInstanceEntity(UUID.randomUUID().toString(), itemId, now, effect.slot).also {
-                    inventoryDao.insertInstances(listOf(it))
-                    inventoryDao.putStack(migratedStack.copy(quantity = migratedStack.quantity - 1, updatedAtEpochMs = now))
-                }
+
+    fun enterRegion(regionId: String) = launchOperation { worldInteractionService.enterRegion(regionId) }
+
+    fun interactWith(contentId: String, sceneId: String, regionId: String) = launchOperation {
+        val scene = requireNotNull(content.scenes.firstOrNull { it.id == sceneId }) { "Scene content is unavailable" }
+        val interactable = requireNotNull(scene.interactables.firstOrNull { it.contentId == contentId }) { "Interaction is unavailable" }
+        if (interactable.type == "NPC") {
+            worldInteractionService.talkToNpc(contentId, sceneId)
+            val lines = content.dialogue[contentId].orEmpty()
+            if (lines.isNotEmpty()) {
+                val cursor = dialogueCursors[contentId] ?: 0
+                val line = lines[cursor % lines.size]
+                dialogueCursors[contentId] = (cursor + 1) % lines.size
+                worldInteraction.value = WorldInteraction(line.speaker, line.text, WorldInteractionKind.DIALOGUE)
             }
-        state.value.equipmentSlots.firstOrNull { it.slot == effect.slot }?.inventoryInstanceId
-            ?.let { previousId -> state.value.inventoryInstances.firstOrNull { it.instanceId == previousId } }
-            ?.let { previous -> inventoryDao.updateInstance(previous.copy(equippedSlot = null)) }
-        inventoryDao.updateInstance(instance.copy(equippedSlot = effect.slot))
-        inventoryDao.putEquipment(EquipmentSlotEntity(effect.slot, instance.instanceId, System.currentTimeMillis()))
+            return@launchOperation
+        }
+
+        val item = requireNotNull(content.items.firstOrNull { it.id == contentId }) { "Item content is unavailable" }
+        val collected = worldInteractionService.collect(interactable.id, contentId, sceneId, regionId)
+        worldInteraction.value = if (collected) {
+            WorldInteraction("Found ${item.name}", item.description, WorldInteractionKind.COLLECTION)
+        } else {
+            WorldInteraction(item.name, "You already gathered this discovery.", WorldInteractionKind.COLLECTION)
+        }
     }
+
+    fun completeScene(sceneId: String) = launchOperation {
+        val scene = requireNotNull(content.scenes.firstOrNull { it.id == sceneId }) { "Scene content is unavailable" }
+        worldInteractionService.completeScene(scene.id, scene.regionId)
+    }
+
+    fun equip(instanceId: String) = launchOperation { equipmentService.equip(instanceId) }
+    fun unequip(slot: String) = launchOperation { equipmentService.unequip(slot) }
+    fun synthesize(recipeId: String, infusionId: String? = null) = launchOperation { equipmentService.synthesize(recipeId, infusionId) }
+    fun enhance(instanceId: String) = launchOperation { equipmentService.enhance(instanceId) }
+    fun refine(instanceId: String) = launchOperation { equipmentService.refine(instanceId) }
+    fun salvage(instanceId: String) = launchOperation { equipmentService.salvage(instanceId) }
+
+    fun spendDreamSpark(nodeId: String) = launchOperation { petSpecializationService.spend(nodeId) }
+    fun acceptQuest(questId: String) = launchOperation { questProgressService.accept(questId) }
+    fun abandonQuest(questId: String) = launchOperation { questProgressService.abandon(questId) }
+    fun trackQuest(questId: String, tracked: Boolean) = launchOperation {
+        questProgressService.track(questId, tracked)
+        settingsRepository.setTrackedQuestId(if (tracked) questId else null)
+    }
+    fun claimQuest(questId: String) = launchOperation { questProgressService.claim(questId) }
+    fun chooseEvolution(formId: String) = launchOperation { evolutionService.choose(formId) }
+    fun equipTitle(titleId: String) = launchOperation { titleService.equip(titleId) }
+
     fun renamePet(name: String) = launchOperation {
         val clean = name.trim().take(24)
         require(clean.length >= 2) { "Pet name must contain at least two characters" }
         petDao.pet()?.let { petDao.update(it.copy(displayName = clean, updatedAtEpochMs = System.currentTimeMillis())) }
     }
+
     fun markPermissionExplanations() = launchOperation {
         settingsRepository.markActivityPermissionExplained()
         settingsRepository.markNotificationPermissionExplained()
     }
+    fun markActivityPermissionExplained() = launchOperation { settingsRepository.markActivityPermissionExplained() }
+    fun markNotificationPermissionExplained() = launchOperation { settingsRepository.markNotificationPermissionExplained() }
+
     fun setAlarmEnabled(value: Boolean) = launchOperation {
         if (value) {
-            wakeAlarmScheduler.schedule(nextOccurrence(state.value.settings.targetWakeMinutes))
+            require(wakeAlarmScheduler.canSchedule()) { "Allow exact alarms in Android settings to enable the wake alarm" }
+            wakeAlarmScheduler.schedule(ScheduleTimes.nextOccurrence(System.currentTimeMillis(), state.value.settings.targetWakeMinutes))
             settingsRepository.setAlarmEnabled(true)
         } else {
             wakeAlarmScheduler.cancel()
             settingsRepository.setAlarmEnabled(false)
         }
     }
-    fun setWindDownReminderEnabled(value: Boolean) = launchOperation { settingsRepository.setWindDownReminderEnabled(value); if (value) windDownReminderScheduler.schedule(nextOccurrence((state.value.settings.targetSleepMinutes - 60 + 1440) % 1440)) else windDownReminderScheduler.cancel() }
+
+    fun setBedtimeReminderEnabled(value: Boolean) = launchOperation {
+        settingsRepository.setBedtimeReminderEnabled(value)
+        if (value) bedtimeReminderScheduler.schedule(ScheduleTimes.nextOccurrence(System.currentTimeMillis(), state.value.settings.targetSleepMinutes))
+        else bedtimeReminderScheduler.cancel()
+    }
+
+    fun setWindDownReminderEnabled(value: Boolean) = launchOperation {
+        settingsRepository.setWindDownReminderEnabled(value)
+        if (value) {
+            val target = (state.value.settings.targetSleepMinutes - 60 + 1440) % 1440
+            windDownReminderScheduler.schedule(ScheduleTimes.nextOccurrence(System.currentTimeMillis(), target))
+        } else windDownReminderScheduler.cancel()
+    }
+
+    fun setMorningResultNotificationsEnabled(value: Boolean) = launchOperation { settingsRepository.setMorningResultNotificationsEnabled(value) }
     fun setLargeControls(value: Boolean) = launchOperation { settingsRepository.setLargeControls(value) }
     fun setControlOpacity(value: Float) = launchOperation { settingsRepository.setControlOpacity(value) }
     fun setLeftHandedControls(value: Boolean) = launchOperation { settingsRepository.setLeftHandedControls(value) }
+    fun setHapticsEnabled(value: Boolean) = launchOperation { settingsRepository.setHapticsEnabled(value) }
+    fun setScreenShakeEnabled(value: Boolean) = launchOperation { settingsRepository.setScreenShakeEnabled(value) }
     fun setReducedMotion(value: Boolean) = launchOperation { settingsRepository.setMotion(if (value) MotionPreference.REDUCED else MotionPreference.FULL) }
     fun setTheme(value: ThemePreference) = launchOperation { settingsRepository.setTheme(value) }
-    fun setVolume(value: Float) = launchOperation { settingsRepository.setVolume(value); gameAudioController.setVolume(value) }
-    fun playSceneAudio(regionId: String) {
-        content.regions.firstOrNull { it.id == regionId }?.let { gameAudioController.playLoop(it.ambienceAsset, state.value.settings.soundVolume) }
-    }
-    fun stopSceneAudio() = gameAudioController.stop()
 
-    override fun onCleared() {
-        gameAudioController.stop()
-        super.onCleared()
+    fun setMusicVolume(value: Float) = launchOperation {
+        settingsRepository.setMusicVolume(value)
+        gameAudioController.setMusicVolume(value)
     }
+    fun setAmbienceVolume(value: Float) = launchOperation {
+        settingsRepository.setAmbienceVolume(value)
+        gameAudioController.setAmbienceVolume(value)
+    }
+    fun setSfxVolume(value: Float) = launchOperation { settingsRepository.setSfxVolume(value) }
+
+    fun setVolume(value: Float) = launchOperation {
+        settingsRepository.setMusicVolume(value)
+        settingsRepository.setAmbienceVolume(value)
+        settingsRepository.setSfxVolume(value)
+        gameAudioController.setMusicVolume(value)
+        gameAudioController.setAmbienceVolume(value)
+    }
+
+    fun playSceneAudio(regionId: String) {
+        val region = content.regions.firstOrNull { it.id == regionId } ?: return
+        val settings = state.value.settings
+        gameAudioController.playRegion(region.musicAsset, region.ambienceAsset, settings.musicVolume, settings.ambienceVolume)
+    }
+
+    fun stopSceneAudio() = gameAudioController.stopLoops()
+    fun playWakeSfx() = gameAudioController.playSfx("audio/sfx/sfx_pet_wake_01.ogg", state.value.settings.sfxVolume)
     fun clearError() { operationError.value = null }
     fun exportData(onReady: (Uri) -> Unit) = launchOperation { onReady(dataControlRepository.exportJson()) }
-    fun deleteSleepHistory() = launchOperation { sleepSignalSource.unsubscribe(); dataControlRepository.deleteSleepHistory(); morningResult.value = null }
-    fun resetGameProgress() = launchOperation { dataControlRepository.resetGameProgress(); worldInteraction.value = null }
-    fun deleteAllData() = launchOperation { sleepSignalSource.unsubscribe(); wakeAlarmScheduler.cancel(); windDownReminderScheduler.cancel(); gameAudioController.stop(); dataControlRepository.deleteAllLocalData(); morningResult.value = null; worldInteraction.value = null }
 
-    private fun launchOperation(block: suspend () -> Unit) = viewModelScope.launch { operationError.value = null; runCatching { block() }.onFailure { operationError.value = it.message ?: "The operation could not be completed" } }
+    fun deleteSleepHistory() = launchOperation {
+        sleepSignalSource.unsubscribe()
+        dataControlRepository.deleteSleepHistory()
+        morningResult.value = null
+    }
 
-    private fun nextOccurrence(minutes: Int): Long {
-        val calendar = java.util.Calendar.getInstance().apply { set(java.util.Calendar.HOUR_OF_DAY, minutes / 60); set(java.util.Calendar.MINUTE, minutes % 60); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0) }
-        if (calendar.timeInMillis <= System.currentTimeMillis()) calendar.add(java.util.Calendar.DAY_OF_YEAR, 1)
-        return calendar.timeInMillis
+    fun resetGameProgress() = launchOperation {
+        require(state.value.sessions.none { it.state in setOf("ARMED", "TRACKING", "WAKE_PENDING", "REVIEW_PENDING", "FINALIZED") }) {
+            "Finish or cancel the current night before resetting game progress"
+        }
+        dataControlRepository.resetGameProgress()
+        worldInteraction.value = null
+    }
+
+    fun deleteAllData() = launchOperation {
+        sleepSignalSource.unsubscribe()
+        wakeAlarmScheduler.cancel()
+        windDownReminderScheduler.cancel()
+        bedtimeReminderScheduler.cancel()
+        gameAudioController.stopAll()
+        dataControlRepository.deleteAllLocalData()
+        morningResult.value = null
+        worldInteraction.value = null
+    }
+
+    override fun onCleared() {
+        gameAudioController.stopAll()
+        super.onCleared()
+    }
+
+    private suspend fun saveSleepPlanInternal(sleepMinutes: Int, wakeMinutes: Int) {
+        settingsRepository.setSleepPlan(sleepMinutes, wakeMinutes)
+        val settings = state.value.settings
+        val now = System.currentTimeMillis()
+        if (settings.alarmEnabled) wakeAlarmScheduler.schedule(ScheduleTimes.nextOccurrence(now, wakeMinutes))
+        if (settings.windDownReminderEnabled) {
+            val windDown = (sleepMinutes - 60 + 1440) % 1440
+            windDownReminderScheduler.schedule(ScheduleTimes.nextOccurrence(now, windDown))
+        }
+        if (settings.bedtimeReminderEnabled) bedtimeReminderScheduler.schedule(ScheduleTimes.nextOccurrence(now, sleepMinutes))
+    }
+
+    private fun launchOperation(block: suspend () -> Unit) = viewModelScope.launch {
+        operationError.value = null
+        runCatching { block() }.onFailure { throwable ->
+            operationError.value = throwable.message ?: "The operation could not be completed"
+        }
     }
 }

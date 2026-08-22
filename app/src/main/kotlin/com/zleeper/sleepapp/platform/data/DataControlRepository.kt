@@ -6,6 +6,7 @@ import androidx.core.content.FileProvider
 import androidx.room.withTransaction
 import com.zleeper.sleepapp.data.local.database.ZleeperDatabase
 import com.zleeper.sleepapp.data.local.preferences.SettingsRepository
+import com.zleeper.sleepapp.platform.work.RewardResolutionScheduler
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
@@ -21,6 +22,7 @@ class DataControlRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: ZleeperDatabase,
     private val settingsRepository: SettingsRepository,
+    private val rewardResolutionScheduler: RewardResolutionScheduler,
 ) {
     suspend fun exportJson(): Uri = withContext(Dispatchers.IO) {
         val settings = settingsRepository.settings.first()
@@ -61,10 +63,18 @@ class DataControlRepository @Inject constructor(
         FileProvider.getUriForFile(context, "${context.packageName}.files", file)
     }
 
-    suspend fun deleteSleepHistory() = withContext(Dispatchers.IO) { database.withTransaction { deleteTables(SLEEP_HISTORY_TABLES) } }
-    suspend fun resetGameProgress() = withContext(Dispatchers.IO) { database.withTransaction { deleteTables(GAME_PROGRESS_TABLES) } }
+    suspend fun deleteSleepHistory() {
+        rewardResolutionScheduler.cancelAllAndAwait()
+        withContext(Dispatchers.IO) { database.withTransaction { deleteTables(SLEEP_HISTORY_TABLES) } }
+    }
+
+    suspend fun resetGameProgress() {
+        rewardResolutionScheduler.cancelAllAndAwait()
+        withContext(Dispatchers.IO) { database.withTransaction { deleteTables(GAME_PROGRESS_TABLES) } }
+    }
 
     suspend fun deleteAllLocalData() {
+        rewardResolutionScheduler.cancelAllAndAwait()
         withContext(Dispatchers.IO) { database.clearAllTables() }
         settingsRepository.reset()
     }
@@ -100,8 +110,8 @@ class DataControlRepository @Inject constructor(
             "sleep_session", "sleep_signal", "night_outcome", "expedition", "expedition_path_node", "expedition_reward",
             "pet", "pet_progression_event", "inventory_stack", "inventory_instance", "inventory_transaction", "equipment_slot",
             "equipment_progression_event", "quest_progress", "quest_objective_progress", "world_unlock", "world_discovery",
-            "collection_entry", "morning_note", "pet_specialization", "pet_memory", "hearth_progress", "hearth_progression_event",
-            "title_unlock", "scene_completion",
+            "collection_entry", "morning_note", "pet_specialization", "pet_memory", "hearth_progress", "hearth_progress_event",
+            "player_title", "world_scene_completion",
         )
         val SLEEP_HISTORY_TABLES = listOf(
             "morning_note", "night_outcome", "expedition_reward", "expedition_path_node", "expedition", "sleep_signal", "sleep_session",
@@ -109,7 +119,7 @@ class DataControlRepository @Inject constructor(
         val GAME_PROGRESS_TABLES = listOf(
             "equipment_progression_event", "pet_progression_event", "equipment_slot", "inventory_instance", "inventory_stack",
             "inventory_transaction", "quest_objective_progress", "quest_progress", "world_discovery", "world_unlock", "collection_entry",
-            "pet_specialization", "pet_memory", "hearth_progression_event", "hearth_progress", "title_unlock", "scene_completion", "pet",
+            "pet_specialization", "pet_memory", "hearth_progress_event", "hearth_progress", "player_title", "world_scene_completion", "pet",
         )
     }
 }

@@ -9,6 +9,10 @@ object SleepSchedule {
         return if (forward == 0) 1440 else forward
     }
 
+    /** Canonical planned sleep duration derived only from bedtime and wake target. */
+    fun plannedDurationMinutes(sleepMinutes: Int, wakeMinutes: Int): Int =
+        durationBetween(sleepMinutes, wakeMinutes)
+
     fun validateConfiguredWindow(sleepMinutes: Int, wakeMinutes: Int): Int {
         val duration = durationBetween(sleepMinutes, wakeMinutes)
         require(duration in 180..900) { "Planned sleep window must be between 3 and 15 hours" }

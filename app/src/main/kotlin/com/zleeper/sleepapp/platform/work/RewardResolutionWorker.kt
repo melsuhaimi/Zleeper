@@ -24,10 +24,9 @@ class RewardResolutionWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         val sessionId = inputData.getString(RewardResolutionScheduler.KEY_SESSION_ID) ?: return Result.failure()
         return runCatching {
-            val settings = settingsRepository.settings.first()
             val reflected = morningDao.note(sessionId) != null
-            nightResolutionService.resolve(sessionId, settings.targetDurationMinutes, reflected)
-            if (settings.morningResultNotificationsEnabled) notifications.showRewardsReady()
+            nightResolutionService.resolve(sessionId, reflected)
+            if (settingsRepository.settings.first().morningResultNotificationsEnabled) notifications.showRewardsReady()
         }.fold(
             onSuccess = { Result.success() },
             onFailure = { if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure() },

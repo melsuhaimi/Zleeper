@@ -58,7 +58,7 @@ class BootReceiver : BroadcastReceiver() {
                 if (sleepDao.trackingSession() != null && sleepSignalSource.isAvailable()) {
                     sleepSignalSource.subscribe()
                 }
-                sleepDao.pendingRewardSessions().forEach { session -> rewardResolutionScheduler.enqueue(session.id) }
+                sleepDao.pendingRewardResolution().forEach { session -> rewardResolutionScheduler.enqueue(session.id) }
             } finally {
                 pending.finish()
             }

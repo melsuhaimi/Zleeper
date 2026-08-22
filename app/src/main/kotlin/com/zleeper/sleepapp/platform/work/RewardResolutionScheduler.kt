@@ -8,6 +8,8 @@ import androidx.work.WorkManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Singleton
 class RewardResolutionScheduler @Inject constructor(@ApplicationContext context: Context) {
@@ -22,6 +24,10 @@ class RewardResolutionScheduler @Inject constructor(@ApplicationContext context:
     }
 
     fun cancelAll() = workManager.cancelAllWorkByTag(TAG)
+
+    suspend fun cancelAllAndAwait() = withContext(Dispatchers.IO) {
+        workManager.cancelAllWorkByTag(TAG).result.get()
+    }
 
     companion object {
         const val KEY_SESSION_ID = "sleep_session_id"
