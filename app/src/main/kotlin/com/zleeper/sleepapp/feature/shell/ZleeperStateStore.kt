@@ -45,6 +45,7 @@ class ZleeperStateStore @Inject constructor(
             equipmentInfusions = content.equipmentInfusions,
             equipmentTraits = content.equipmentTraits,
             titleDefinitions = content.titles,
+            progressionRules = content.progressionRules,
             gameEffects = effects,
             equipmentMaxUpgradeLevel = requireNotNull(content.progressionRules.equipmentProgression).maxUpgradeLevel,
             contentErrors = content.validate(),
