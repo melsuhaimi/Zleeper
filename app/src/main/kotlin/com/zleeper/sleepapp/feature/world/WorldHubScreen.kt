@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -37,7 +36,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zleeper.sleepapp.data.content.HearthStageDefinition
-import com.zleeper.sleepapp.data.content.RegionDefinition
 import com.zleeper.sleepapp.data.local.preferences.MotionPreference
 import com.zleeper.sleepapp.domain.pet.CompanionActivity
 import com.zleeper.sleepapp.domain.pet.CompanionDirector
@@ -55,7 +53,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun WorldHubScreen(
     state: ZleeperUiState,
-    onOpenScene: (String) -> Unit,
+    onOpenRegionMap: () -> Unit,
 ) {
     val pet = state.pet ?: return
     val form = state.forms.firstOrNull { it.id == pet.formId } ?: return
@@ -84,17 +82,25 @@ fun WorldHubScreen(
                 )
             }
             item {
-                Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("THE WAKING WORLD", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-                    Text("Choose a trail", style = MaterialTheme.typography.headlineMedium)
-                    state.trackedQuest?.let { tracked ->
-                        val quest = state.quests.firstOrNull { it.id == tracked.questId }
-                        if (quest != null) Text("Tracked · ${quest.name}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Surface(
+                    modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("THE WAKING WORLD", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                        Text("Choose a trail from the region map", style = MaterialTheme.typography.headlineMedium)
+                        state.trackedQuest?.let { tracked ->
+                            val quest = state.quests.firstOrNull { it.id == tracked.questId }
+                            if (quest != null) Text("Tracked · ${quest.name}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(
+                            "${state.regions.count { pet.level >= it.unlockLevel }} of ${state.regions.size} regions currently open",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Button(onClick = onOpenRegionMap, modifier = Modifier.fillMaxWidth()) { Text("Open region map") }
                     }
                 }
-            }
-            items(state.regions, key = { it.id }) { region ->
-                RegionCard(region, pet.level >= region.unlockLevel, onOpenScene)
             }
             item {
                 HearthProgressCard(memories, stage, nextStage)
@@ -221,28 +227,6 @@ private fun StatChip(label: String, value: Int, meaning: String) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp)) {
             Text("$label $value", fontWeight = FontWeight.SemiBold)
             Text(meaning, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun RegionCard(region: RegionDefinition, unlocked: Boolean, onOpenScene: (String) -> Unit) {
-    Surface(
-        modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(if (unlocked) "OPEN TRAIL" else "LEVEL ${region.unlockLevel}", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-            Text(region.name, style = MaterialTheme.typography.titleLarge)
-            Text(region.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(
-                onClick = { region.scenes.firstOrNull()?.let(onOpenScene) },
-                enabled = unlocked && region.scenes.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (unlocked) "Explore" else "Locked")
-            }
         }
     }
 }
