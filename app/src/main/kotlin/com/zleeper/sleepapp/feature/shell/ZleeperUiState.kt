@@ -64,7 +64,10 @@ data class ZleeperUiState(
     val pendingResolution: SleepSessionEntity?
         get() = sessions.firstOrNull { it.state == "FINALIZED" }
     val pendingReveal: ExpeditionEntity?
-        get() = expeditions.firstOrNull { it.status == "RESOLVED" && it.id != settings.lastRevealedExpeditionId }
+        get() = expeditions
+            .filter { it.status == "RESOLVED" }
+            .maxByOrNull { it.startedAtEpochMs }
+            ?.takeIf { it.id != settings.lastRevealedExpeditionId }
     val trackedQuest: QuestProgressEntity?
         get() = questProgress.firstOrNull { it.tracked }
 }
