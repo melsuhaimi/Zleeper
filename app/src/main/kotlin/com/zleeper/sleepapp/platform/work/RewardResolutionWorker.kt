@@ -26,12 +26,14 @@ class RewardResolutionWorker @AssistedInject constructor(
         return runCatching {
             val reflected = morningDao.note(sessionId) != null
             nightResolutionService.resolve(sessionId, reflected)
-            if (settingsRepository.settings.first().morningResultNotificationsEnabled) notifications.showRewardsReady()
+            if (settingsRepository.settings.first().morningResultNotificationsEnabled) {
+                notifications.showRewardsReady()
+            }
         }.fold(
             onSuccess = { Result.success() },
-            onFailure = { if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure() },
+            onFailure = {
+                if (RewardRetryPolicy.shouldRetry(runAttemptCount)) Result.retry() else Result.failure()
+            },
         )
     }
-
-    private companion object { const val MAX_RETRIES = 4 }
 }
