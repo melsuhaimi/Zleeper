@@ -8,13 +8,13 @@ import com.zleeper.sleepapp.core.time.AppClock
 import com.zleeper.sleepapp.core.time.SystemAppClock
 import com.zleeper.sleepapp.data.local.database.ExpeditionDao
 import com.zleeper.sleepapp.data.local.database.InventoryDao
-import com.zleeper.sleepapp.data.local.database.MIGRATION_1_2
 import com.zleeper.sleepapp.data.local.database.MorningDao
 import com.zleeper.sleepapp.data.local.database.PetDao
 import com.zleeper.sleepapp.data.local.database.QuestDao
 import com.zleeper.sleepapp.data.local.database.SleepDao
 import com.zleeper.sleepapp.data.local.database.WorldDao
 import com.zleeper.sleepapp.data.local.database.ZleeperDatabase
+import com.zleeper.sleepapp.data.local.database.ZleeperMigrations
 import com.zleeper.sleepapp.data.local.preferences.zleeperPreferences
 import com.zleeper.sleepapp.data.repository.RoomSleepSessionRepository
 import com.zleeper.sleepapp.domain.sleep.SleepSessionRepository
@@ -34,7 +34,7 @@ object DataModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): ZleeperDatabase =
         Room.databaseBuilder(context, ZleeperDatabase::class.java, "zleeper.db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(ZleeperMigrations.MIGRATION_1_2)
             .build()
 
     @Provides
