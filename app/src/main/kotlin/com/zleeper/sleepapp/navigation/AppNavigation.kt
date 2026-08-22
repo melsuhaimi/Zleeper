@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.zleeper.sleepapp.data.local.preferences.MotionPreference
 import com.zleeper.sleepapp.feature.journal.JournalScreen as RefinedJournalScreen
+import com.zleeper.sleepapp.feature.menu.MenuRoute as RefinedMenuRoute
 import com.zleeper.sleepapp.feature.morning.MorningResolutionPendingScreen
 import com.zleeper.sleepapp.feature.morning.MorningRevealScreen
 import com.zleeper.sleepapp.feature.morning.MorningReviewScreen
@@ -138,7 +139,7 @@ fun AppNavigation(
                         onAbort = viewModel::abortSleep,
                     )
                     AppRoute.JOURNAL -> RefinedJournalScreen()
-                    AppRoute.MENU -> MenuScreen(state, viewModel)
+                    AppRoute.MENU -> RefinedMenuRoute(state, viewModel)
                 }
             }
         }
