@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM sleep_session ORDER BY sessionStartEpochMs DESC") suspend fun sessionsOnce(): List<SleepSessionEntity>
     @Query("SELECT * FROM sleep_session WHERE state IN ('FINALIZED','EXPEDITION_RESOLVED') ORDER BY sessionStartEpochMs DESC LIMIT :limit") suspend fun recentResolved(limit: Int): List<SleepSessionEntity>
     @Query("SELECT * FROM sleep_session WHERE state NOT IN ('FINALIZED','EXPEDITION_RESOLVED','ABORTED') ORDER BY sessionStartEpochMs DESC LIMIT 1") suspend fun activeSession(): SleepSessionEntity?
-    @Query("SELECT * FROM sleep_session WHERE state = 'TRACKING' ORDER BY sessionStartEpochMs DESC LIMIT 1") suspend fun trackingSession(): SleepSessionEntity?
+    @Query("SELECT * FROM sleep_session WHERE state IN ('ARMED','TRACKING') ORDER BY sessionStartEpochMs DESC LIMIT 1") suspend fun trackingSession(): SleepSessionEntity?
     @Query("SELECT * FROM sleep_session WHERE state = 'FINALIZED' ORDER BY finalizedAtEpochMs ASC") suspend fun pendingRewardResolution(): List<SleepSessionEntity>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSignals(values: List<SleepSignalEntity>)
     @Query("SELECT * FROM sleep_signal WHERE sessionId = :sessionId ORDER BY occurredAtEpochMs") suspend fun signals(sessionId: String): List<SleepSignalEntity>
