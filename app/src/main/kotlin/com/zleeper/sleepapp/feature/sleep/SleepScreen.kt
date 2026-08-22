@@ -23,7 +23,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -61,12 +60,18 @@ fun SleepScreen(
     var bedtime by rememberSaveable(state.settings.targetSleepMinutes) { mutableIntStateOf(state.settings.targetSleepMinutes) }
     var wakeTime by rememberSaveable(state.settings.targetWakeMinutes) { mutableIntStateOf(state.settings.targetWakeMinutes) }
     var windDownRemaining by rememberSaveable { mutableIntStateOf(0) }
+    var windDownComplete by rememberSaveable { mutableStateOf(false) }
     val plannedMinutes = SleepSchedule.plannedDurationMinutes(bedtime, wakeTime)
 
     LaunchedEffect(windDownRemaining) {
         if (windDownRemaining > 0) {
             delay(1_000)
-            windDownRemaining--
+            if (windDownRemaining == 1) {
+                windDownRemaining = 0
+                windDownComplete = true
+            } else {
+                windDownRemaining--
+            }
         }
     }
 
@@ -115,23 +120,35 @@ fun SleepScreen(
                             windDownRemaining > 0 -> {
                                 Text("Wind-down", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                                 Text("${windDownRemaining}s", style = MaterialTheme.typography.displaySmall)
-                                Text("A short, quiet ritual. Nothing is tracked until you press Begin Sleep when it completes.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("A short, quiet ritual. Nothing is tracked until you explicitly begin sleep.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            windDownRemaining == 0 -> {
+                            windDownComplete -> {
+                                Text("Wind-down complete", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                Text("Your night is ready.", style = MaterialTheme.typography.titleLarge)
+                                FilledTonalButton(onClick = { onBeginSleep(true) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                                    Text("Begin Sleep")
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        windDownComplete = false
+                                        windDownRemaining = 0
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) { Text("Not yet") }
+                            }
+                            else -> {
                                 Text("Ready for tonight?", style = MaterialTheme.typography.titleLarge)
                                 Text("Wind-down is optional. Every finalized night still gives progress.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                        if (windDownRemaining == 0) {
-                            Button(onClick = { windDownRemaining = 60 }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                                Text("Begin 60-second wind-down")
-                            }
-                            OutlinedButton(onClick = { onBeginSleep(false) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                                Text("Skip wind-down · Begin Sleep")
-                            }
-                        } else if (windDownRemaining == 1) {
-                            FilledTonalButton(onClick = { onBeginSleep(true) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                                Text("Begin Sleep")
+                                Button(
+                                    onClick = {
+                                        windDownComplete = false
+                                        windDownRemaining = 60
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                                ) { Text("Begin 60-second wind-down") }
+                                OutlinedButton(onClick = { onBeginSleep(false) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                                    Text("Skip wind-down · Begin Sleep")
+                                }
                             }
                         }
                     }
@@ -184,7 +201,7 @@ private fun PlanSlider(label: String, valueText: String, value: Float, onValue: 
             Text(label)
             Text(valueText, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
         }
-        Slider(value = value, onValueChange = onValue, valueRange = 0f..1439f, steps = 95)
+        Slider(value = value, onValueChange = onValue, valueRange = 0f..1439f)
     }
 }
 
