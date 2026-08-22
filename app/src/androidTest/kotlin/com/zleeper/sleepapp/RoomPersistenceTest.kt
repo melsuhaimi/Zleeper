@@ -53,6 +53,27 @@ class RoomPersistenceTest {
     }
 
     @Test
+    fun armedSessionIsEligibleForSignalRegistration() = runBlocking {
+        database.sleepDao().insertSession(trackingSession("night").copy(state = SleepSessionState.ARMED.name))
+
+        assertEquals(SleepSessionState.ARMED.name, database.sleepDao().trackingSession()?.state)
+    }
+
+    @Test
+    fun wakeAndReviewStatesAreNotEligibleForSleepCallbacks() = runBlocking {
+        val wakePending = trackingSession("wake").copy(
+            state = SleepSessionState.WAKE_PENDING.name,
+            sessionEndEpochMs = 2_000L,
+        )
+        database.sleepDao().insertSession(wakePending)
+
+        assertNull(database.sleepDao().trackingSession())
+
+        database.sleepDao().updateSession(wakePending.copy(state = SleepSessionState.REVIEW_PENDING.name))
+        assertNull(database.sleepDao().trackingSession())
+    }
+
+    @Test
     fun wakePendingRetryReusesPersistedWakeAnchor() = runBlocking {
         val original = trackingSession("night")
         database.sleepDao().insertSession(original)
