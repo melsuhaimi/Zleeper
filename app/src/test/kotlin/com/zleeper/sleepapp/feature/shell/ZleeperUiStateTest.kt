@@ -16,6 +16,13 @@ class ZleeperUiStateTest {
     }
 
     @Test
+    fun wakePendingSessionRemainsInsideSleepFlowForRecovery() {
+        val session = sleepSession("session-1", "WAKE_PENDING")
+
+        assertEquals(session, ZleeperUiState(sessions = listOf(session)).trackingSession)
+    }
+
+    @Test
     fun latestResolvedExpeditionIsRevealedOnlyUntilAcknowledged() {
         val latest = expedition("expedition-2", "session-2", 2L)
         val older = expedition("expedition-1", "session-1", 1L)
