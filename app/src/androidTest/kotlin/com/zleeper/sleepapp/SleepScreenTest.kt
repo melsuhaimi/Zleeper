@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.zleeper.sleepapp.data.local.database.SleepSessionEntity
 import com.zleeper.sleepapp.feature.shell.ZleeperUiState
 import com.zleeper.sleepapp.feature.sleep.SleepScreen
@@ -32,7 +33,11 @@ class SleepScreenTest {
         }
 
         composeRule.onNodeWithText("A reminder never starts sleep by itself. Tracking starts only after you explicitly choose Begin Sleep.").assertIsDisplayed()
-        composeRule.onNodeWithText("Skip wind-down · Begin Sleep").performClick()
+        composeRule
+            .onNodeWithText("Skip wind-down · Begin Sleep")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
         composeRule.runOnIdle { assertEquals(false, beginValue) }
     }
 
