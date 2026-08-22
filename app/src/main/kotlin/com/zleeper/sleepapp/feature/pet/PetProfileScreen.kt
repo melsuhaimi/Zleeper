@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -138,9 +139,7 @@ fun PetProfileScreen(
                 }
             }
         }
-        item {
-            Text("Recent memories", style = MaterialTheme.typography.titleLarge)
-        }
+        item { Text("Recent memories", style = MaterialTheme.typography.titleLarge) }
         if (state.petMemories.isEmpty()) {
             item { Text("Shared memories will appear as the world changes.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         } else {
@@ -166,11 +165,12 @@ fun PetProfileScreen(
 }
 
 @Composable
-private fun StatCard(label: String, stat: Int, affinity: Int, threshold: Int, detail: String) {
+private fun StatCard(label: String, stat: Int, affinity: Int, growthRate: Int, detail: String) {
+    val nextThreshold = growthRate * (stat + 1)
     Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp)) {
             Text("$label $stat", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
-            Text("$affinity / $threshold affinity", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            Text("$affinity / $nextThreshold affinity", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
             Text(detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
         }
     }
