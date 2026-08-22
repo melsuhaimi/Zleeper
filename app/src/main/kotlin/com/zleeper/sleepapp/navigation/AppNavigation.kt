@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,13 +21,13 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -66,21 +66,33 @@ fun AppNavigation(
     var worldSceneId by rememberSaveable { mutableStateOf<String?>(null) }
     state.scenes.firstOrNull { it.id == worldSceneId }?.let { scene ->
         DisposableEffect(scene.id) {
+            viewModel.enterRegion(scene.regionId)
             viewModel.playSceneAudio(scene.regionId)
             onDispose { viewModel.stopSceneAudio() }
         }
+        val petFormKey = state.pet
+            ?.let { pet -> state.forms.firstOrNull { it.id == pet.formId }?.assetKey }
+            ?: "glimmerling"
+        val trackedQuestText = state.trackedQuest
+            ?.let { progress -> state.quests.firstOrNull { it.id == progress.questId }?.name ?: progress.questId }
         PlatformScene(
             scene = scene,
-            petFormKey = if (state.pet?.formId == "form_moonmoth_02") "lanternwing" else "glimmerling",
+            petFormKey = petFormKey,
             largeControls = state.settings.largeControls,
             leftHandedControls = state.settings.leftHandedControls,
             controlOpacity = state.settings.controlOpacity,
+            reducedMotion = state.settings.motion == MotionPreference.REDUCED,
+            hapticsEnabled = state.settings.hapticsEnabled,
+            screenShakeEnabled = state.settings.screenShakeEnabled,
+            coyoteBonusSeconds = state.gameEffects.coyoteTimeMillis / 1_000f,
+            trackedQuestText = trackedQuestText,
             interaction = state.worldInteraction,
             collectedContentIds = state.collectionEntries.mapTo(mutableSetOf()) { it.entryId },
             modifier = Modifier.fillMaxSize(),
             onClose = { worldSceneId = null },
             onDismissInteraction = viewModel::dismissWorldInteraction,
             onInteract = { viewModel.interactWith(it, scene.id, scene.regionId) },
+            onSceneCompleted = { viewModel.completeScene(scene.id) },
         )
         return
     }
