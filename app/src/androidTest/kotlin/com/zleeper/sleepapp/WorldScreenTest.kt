@@ -1,10 +1,13 @@
 package com.zleeper.sleepapp
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import com.zleeper.sleepapp.data.content.RegionDefinition
 import com.zleeper.sleepapp.data.local.database.PetEntity
 import com.zleeper.sleepapp.feature.shell.ZleeperUiState
@@ -63,8 +66,10 @@ class WorldScreenTest {
         }
 
         composeRule.onNodeWithText("REGION MAP").assertIsDisplayed()
+        composeRule.onNodeWithTag("region-map").performScrollToNode(hasText("Enter Whispering Grove"))
         composeRule.onNodeWithText("Enter Whispering Grove").performClick()
         composeRule.runOnIdle { assertEquals("scene_whispering_grove_entry", openedScene) }
+        composeRule.onNodeWithTag("region-map").performScrollToNode(hasText("REGION MAP"))
         composeRule.onNodeWithContentDescription("Back to Hearth").performClick()
         composeRule.runOnIdle { assertTrue(backedOut) }
     }
