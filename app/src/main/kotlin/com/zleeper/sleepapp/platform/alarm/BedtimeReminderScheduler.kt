@@ -9,12 +9,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class WindDownReminderScheduler @Inject constructor(@ApplicationContext private val context: Context) {
+class BedtimeReminderScheduler @Inject constructor(@ApplicationContext private val context: Context) {
     private val manager = context.getSystemService(AlarmManager::class.java)
     private val operation get() = PendingIntent.getBroadcast(
         context,
         REQUEST_CODE,
-        Intent(context, WindDownReminderReceiver::class.java),
+        Intent(context, BedtimeReminderReceiver::class.java),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
@@ -26,7 +26,7 @@ class WindDownReminderScheduler @Inject constructor(@ApplicationContext private 
     fun cancel() = manager.cancel(operation)
 
     private companion object {
-        const val REQUEST_CODE = 8124
+        const val REQUEST_CODE = 8125
         const val WINDOW_MILLIS = 15 * 60_000L
     }
 }

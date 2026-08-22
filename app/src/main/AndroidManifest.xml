@@ -27,6 +27,8 @@
         <receiver android:name=".platform.sleep.SleepEventReceiver" android:exported="false" />
         <receiver android:name=".platform.alarm.WakeAlarmReceiver" android:exported="false" />
         <receiver android:name=".platform.alarm.WindDownReminderReceiver" android:exported="false" />
+        <receiver android:name=".platform.alarm.BedtimeReminderReceiver" android:exported="false" />
+        <receiver android:name=".platform.alarm.ReminderActionReceiver" android:exported="false" />
         <receiver android:name=".platform.boot.BootReceiver" android:enabled="true" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

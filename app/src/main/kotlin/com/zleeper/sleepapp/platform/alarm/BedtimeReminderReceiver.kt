@@ -13,19 +13,19 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class WakeAlarmReceiver : BroadcastReceiver() {
+class BedtimeReminderReceiver : BroadcastReceiver() {
     @Inject lateinit var notifications: ZleeperNotifications
     @Inject lateinit var settings: SettingsRepository
-    @Inject lateinit var scheduler: WakeAlarmScheduler
+    @Inject lateinit var scheduler: BedtimeReminderScheduler
 
     override fun onReceive(context: Context, intent: Intent) {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val value = settings.settings.first()
-                if (!value.alarmEnabled) return@launch
-                notifications.showWakeAlarm()
-                if (scheduler.canSchedule()) scheduler.schedule(ScheduleTimes.nextOccurrence(System.currentTimeMillis(), value.targetWakeMinutes))
+                if (!value.bedtimeReminderEnabled) return@launch
+                notifications.showBedtimeReminder()
+                scheduler.schedule(ScheduleTimes.nextOccurrence(System.currentTimeMillis(), value.targetSleepMinutes))
             } finally { pending.finish() }
         }
     }
