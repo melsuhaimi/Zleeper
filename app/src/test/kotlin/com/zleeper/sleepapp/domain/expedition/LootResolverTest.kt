@@ -33,10 +33,14 @@ class LootResolverTest {
 
     @Test
     fun bonusMaterialRollsIgnoreNonMaterialEntries() {
+        val bonusOnlyNodes = listOf(
+            ExpeditionNode("start", "region", "START", 0, next = listOf("destination"), textKey = "start"),
+            ExpeditionNode("destination", "region", "DESTINATION", 1, textKey = "destination"),
+        )
         val loot = listOf(
             LootTable(
                 "loot",
-                rolls = 0,
+                rolls = 1,
                 entries = listOf(
                     LootEntry("material", weight = 1, minimum = 1, maximum = 1, material = true),
                     LootEntry("relic", weight = 100, minimum = 1, maximum = 1, material = false),
@@ -52,7 +56,7 @@ class LootResolverTest {
             bonusMaterialRolls = 3,
         )
 
-        val result = ExpeditionResolver.resolve(input, nodes, loot)
+        val result = ExpeditionResolver.resolve(input, bonusOnlyNodes, loot)
 
         assertEquals(listOf("material"), result.rewards.map { it.itemId })
         assertEquals(3, result.rewards.single().quantity)
