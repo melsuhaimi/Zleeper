@@ -45,7 +45,7 @@ fun OnboardingFlow(
     var wakeTime by rememberSaveable { mutableIntStateOf(state.settings.targetWakeMinutes) }
     val plannedMinutes = SleepSchedule.plannedDurationMinutes(bedtime, wakeTime)
 
-    val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+    val activityPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         step = 4
     }
 
@@ -88,8 +88,8 @@ fun OnboardingFlow(
                         Text("Phone-based estimation", style = MaterialTheme.typography.headlineLarge)
                         Text("Activity Recognition lets Google Play services provide sleep-related phone signals. If you deny it or the capability is unavailable, manual Begin Sleep and wake still work.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
-                        Text("Notifications", style = MaterialTheme.typography.titleMedium)
-                        Text("Notifications support bedtime reminders and morning results. Dismissing a reminder never starts tracking; Begin Sleep always requires an explicit action.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Other permissions are just in time", style = MaterialTheme.typography.titleMedium)
+                        Text("Notification access is requested only when you enable a reminder or morning result, and exact-alarm access only when you enable the wake alarm.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     else -> {
                         Text("Your first night is ready", style = MaterialTheme.typography.headlineLarge)
@@ -113,12 +113,9 @@ fun OnboardingFlow(
                                 step++
                             }
                             3 -> {
-                                val requested = buildList {
-                                    if (Build.VERSION.SDK_INT >= 29) add(Manifest.permission.ACTIVITY_RECOGNITION)
-                                    if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
-                                }
-                                viewModel.markPermissionExplanations()
-                                if (requested.isEmpty()) step = 4 else permissions.launch(requested.toTypedArray())
+                                viewModel.markActivityPermissionExplained()
+                                if (Build.VERSION.SDK_INT < 29) step = 4
+                                else activityPermission.launch(Manifest.permission.ACTIVITY_RECOGNITION)
                             }
                             4 -> viewModel.createPet(petName)
                         }
