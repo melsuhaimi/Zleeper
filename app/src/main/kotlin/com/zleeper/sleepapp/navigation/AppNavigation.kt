@@ -35,6 +35,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.zleeper.sleepapp.data.local.preferences.MotionPreference
 import com.zleeper.sleepapp.feature.journal.JournalScreen as RefinedJournalScreen
 import com.zleeper.sleepapp.feature.shell.ZleeperViewModel
+import com.zleeper.sleepapp.feature.sleep.SleepScreen as RefinedSleepScreen
 import com.zleeper.sleepapp.feature.world.WorldHubScreen
 import com.zleeper.sleepapp.game.scene.PlatformScene
 
@@ -62,6 +63,16 @@ fun AppNavigation(
     }
     state.pendingReveal?.let { expedition ->
         MorningResolutionPending(expedition.id, state.operationError, viewModel::resumePendingResolution)
+        return
+    }
+    if (state.trackingSession != null) {
+        RefinedSleepScreen(
+            state = state,
+            onSavePlan = viewModel::saveSleepPlan,
+            onBeginSleep = viewModel::beginSleep,
+            onWake = viewModel::wake,
+            onAbort = viewModel::abortSleep,
+        )
         return
     }
 
@@ -112,7 +123,13 @@ fun AppNavigation(
             ) { route ->
                 when (route) {
                     AppRoute.WORLD -> WorldHubScreen(state) { worldSceneId = it }
-                    AppRoute.SLEEP -> SleepScreen(state, viewModel)
+                    AppRoute.SLEEP -> RefinedSleepScreen(
+                        state = state,
+                        onSavePlan = viewModel::saveSleepPlan,
+                        onBeginSleep = viewModel::beginSleep,
+                        onWake = viewModel::wake,
+                        onAbort = viewModel::abortSleep,
+                    )
                     AppRoute.JOURNAL -> RefinedJournalScreen()
                     AppRoute.MENU -> MenuScreen(state, viewModel)
                 }
