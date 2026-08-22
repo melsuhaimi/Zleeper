@@ -46,7 +46,7 @@ import com.zleeper.sleepapp.feature.pet.PetProfileScreen
 import com.zleeper.sleepapp.feature.quest.QuestLogScreen
 import com.zleeper.sleepapp.feature.settings.DataManagementScreen
 import com.zleeper.sleepapp.feature.settings.PermissionsScreen
-import com.zleeper.sleepapp.feature.settings.SettingsScreen
+import com.zleeper.sleepapp.feature.settings.SettingsRoute
 import com.zleeper.sleepapp.feature.shell.ZleeperUiState
 import com.zleeper.sleepapp.feature.shell.ZleeperViewModel
 
@@ -108,24 +108,7 @@ fun MenuRoute(state: ZleeperUiState, viewModel: ZleeperViewModel) {
                     state = state,
                     onEquipTitle = { viewModel.equipTitle(it) },
                 )
-                MenuDestination.SETTINGS -> SettingsScreen(
-                    state = state,
-                    onSaveSleepPlan = { sleep, wake -> viewModel.saveSleepPlan(sleep, wake) },
-                    onAlarmEnabled = { viewModel.setAlarmEnabled(it) },
-                    onBedtimeReminderEnabled = { viewModel.setBedtimeReminderEnabled(it) },
-                    onWindDownReminderEnabled = { viewModel.setWindDownReminderEnabled(it) },
-                    onMorningResultsEnabled = { viewModel.setMorningResultNotificationsEnabled(it) },
-                    onMusicVolume = { viewModel.setMusicVolume(it) },
-                    onAmbienceVolume = { viewModel.setAmbienceVolume(it) },
-                    onSfxVolume = { viewModel.setSfxVolume(it) },
-                    onLargeControls = { viewModel.setLargeControls(it) },
-                    onLeftHandedControls = { viewModel.setLeftHandedControls(it) },
-                    onControlOpacity = { viewModel.setControlOpacity(it) },
-                    onHaptics = { viewModel.setHapticsEnabled(it) },
-                    onScreenShake = { viewModel.setScreenShakeEnabled(it) },
-                    onReducedMotion = { viewModel.setReducedMotion(it) },
-                    onTheme = { viewModel.setTheme(it) },
-                )
+                MenuDestination.SETTINGS -> SettingsRoute(state, viewModel)
                 MenuDestination.PERMISSIONS -> PermissionsScreen(
                     state = state,
                     onActivityPermissionExplained = { viewModel.markActivityPermissionExplained() },
